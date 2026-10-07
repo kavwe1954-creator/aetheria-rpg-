@@ -1,0 +1,2840 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronicles of Aetheria - RPG Habit Tracker (Bugfixed Edition)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';s.onload=function(){window.dispatchEvent(new Event('three-ready'))};document.head.appendChild(s)"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap');
+  body { font-family: 'Kanit', sans-serif; background-color: #0d0a1a; color: #e2e8f0; }
+  .glass { background: rgba(22, 16, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(139, 92, 246, 0.3); }
+  /* ===== visual polish: scene, themes, tilt, motion ===== */
+  :root { --mx: 0; --my: 0; }
+  #bgScene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: linear-gradient(180deg,#0d0a1a 0%,#1a1040 55%,#2a1a5e 100%); }
+  .sc-stars { position: absolute; inset: 0 0 35% 0; opacity: .9; animation: twinkle 5s ease-in-out infinite alternate;
+    background-image: radial-gradient(1.5px 1.5px at 20px 30px,#fff,transparent),radial-gradient(1px 1px at 90px 80px,#c4b5fd,transparent),radial-gradient(1.5px 1.5px at 160px 40px,#fff,transparent),radial-gradient(1px 1px at 230px 110px,#fde68a,transparent),radial-gradient(1px 1px at 300px 60px,#fff,transparent);
+    background-size: 340px 160px; transform: translate3d(calc(var(--mx)*-6px),calc(var(--my)*-6px),0); }
+  .sc-moon { position: absolute; top: 9%; right: 12%; width: 74px; height: 74px; border-radius: 50%; background: radial-gradient(circle at 35% 35%,#fffbe6,#f5e7b0 60%,#e6d28c); box-shadow: 0 0 60px 18px rgba(253,230,138,.35); transform: translate3d(calc(var(--mx)*-10px),calc(var(--my)*-10px),0); }
+  .sc-cloud { position: absolute; width: 260px; height: 60px; border-radius: 60px; background: rgba(255,255,255,.07); filter: blur(10px); animation: drift 70s linear infinite; }
+  .sc-cloud.c1 { top: 18%; left: -300px; } .sc-cloud.c2 { top: 32%; left: -300px; animation-duration: 110s; animation-delay: -40s; width: 340px; }
+  .sc-layer { position: absolute; left: -5%; width: 110%; bottom: 0; }
+  .sc-layer.l1 { height: 38vh; fill: #1b1340; transform: translate3d(calc(var(--mx)*-8px),calc(var(--my)*-4px),0); }
+  .sc-layer.l2 { height: 30vh; fill: #150f33; transform: translate3d(calc(var(--mx)*-16px),calc(var(--my)*-8px),0); }
+  .sc-layer.l3 { height: 22vh; fill: #0f0a26; transform: translate3d(calc(var(--mx)*-28px),calc(var(--my)*-12px),0); }
+  @keyframes drift { to { transform: translateX(calc(100vw + 700px)); } }
+  @keyframes twinkle { from { opacity: .55; } to { opacity: 1; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+  @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 0 rgba(239,68,68,0); } 50% { box-shadow: 0 0 22px rgba(245,158,11,.65); } }
+  .glass.rounded-3xl { transition: transform .15s ease-out, box-shadow .25s; animation: rise .55s ease backwards;
+    transform: perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); }
+  .glass.rounded-3xl:hover { box-shadow: 0 14px 42px rgba(139,92,246,.28); }
+  button { transition: transform .12s, filter .15s; } button:not(:disabled):hover { filter: brightness(1.12); } button:not(:disabled):active { transform: scale(.96); }
+  #attackBtn:not(:disabled) { animation: pulseGlow 2.2s ease-in-out infinite; }
+  @keyframes tickPop { 0% { transform: scale(0); } 70% { transform: scale(1.4); } 100% { transform: scale(1); } }
+  .tick-pop { animation: tickPop .55s ease backwards; }
+  /* light theme (first pass) */
+  html.light body { background-color: #eef2ff; color: #1e1b3a; }
+  html.light #bgScene { background: linear-gradient(180deg,#bfe3ff 0%,#e6e8ff 60%,#ffe9d6 100%); }
+  html.light .sc-stars { opacity: 0; } html.light .sc-cloud { background: rgba(255,255,255,.9); }
+  html.light .sc-moon { background: radial-gradient(circle at 40% 40%,#fff6c8,#ffd45e 65%,#ffb703); box-shadow: 0 0 70px 24px rgba(255,200,60,.45); }
+  html.light .sc-layer.l1 { fill: #c7c2f5; } html.light .sc-layer.l2 { fill: #a9a2e8; } html.light .sc-layer.l3 { fill: #8c84d9; }
+  html.light .glass { background: rgba(255,255,255,.86); border-color: rgba(124,58,237,.3); }
+  html.light [class*="bg-slate-9"] { background-color: rgba(255,255,255,.92) !important; }
+  html.light [class*="bg-slate-8"] { background-color: #e8e6fa !important; }
+  html.light .text-slate-100, html.light .text-slate-200, html.light .text-slate-300 { color: #1e1b3a !important; }
+  html.light .text-slate-400, html.light .text-slate-500 { color: #5b5880 !important; }
+  html.light .text-amber-300, html.light .text-amber-200\/90 { color: #b45309 !important; } html.light .text-purple-300 { color: #6d28d9 !important; }
+  html.light .text-indigo-300 { color: #4338ca !important; } html.light .text-emerald-300 { color: #047857 !important; }
+  html.light .text-cyan-300 { color: #0e7490 !important; } html.light .text-yellow-300 { color: #a16207 !important; } html.light .text-red-300 { color: #b91c1c !important; }
+  html.light input, html.light textarea, html.light select { color: #1e1b3a !important; }
+  /* low-power / reduced motion */
+  html.lite *, html.lite *::before { animation: none !important; transition: none !important; }
+  html.lite .glass { backdrop-filter: none !important; } html.lite .glass.rounded-3xl { transform: none !important; } html.lite .sc-cloud, html.lite .sc-stars { display: none; }
+  @media (prefers-reduced-motion: reduce) { .glass.rounded-3xl { animation: none; } .sc-cloud { animation: none; } }
+  .glow-gold { box-shadow: 0 0 20px rgba(234, 179, 8, 0.4); }
+  .glow-red { box-shadow: 0 0 25px rgba(239, 68, 68, 0.5); }
+  .glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); }
+  .shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+  @keyframes shake {
+    10%, 90% { transform: translate3d(-2px, 0, 0); }
+    20%, 80% { transform: translate3d(4px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+    40%, 60% { transform: translate3d(6px, 0, 0); }
+  }
+
+  #dailyRingArc { transition: stroke-dashoffset .7s ease, stroke .3s; }
+
+  /* ===== battle arena FX ===== */
+  #fxCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
+  #battleHero3d { display: none; width: 100%; height: auto; margin: 0 auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,.45)); }
+  #hitOverlay { position: absolute; inset: 0; z-index: 15; pointer-events: none; opacity: 0; border-radius: inherit; }
+  #hitOverlay.hurt { background: radial-gradient(ellipse at center, transparent 35%, rgba(239,68,68,.6)); animation: hitFade .5s ease-out; }
+  #hitOverlay.hitw { background: radial-gradient(circle at 72% 50%, rgba(255,255,255,.4), transparent 55%); animation: hitFade .28s ease-out; }
+  @keyframes hitFade { from { opacity: 1; } to { opacity: 0; } }
+  .hpflash { animation: hpFlash .4s; } @keyframes hpFlash { 40% { filter: brightness(2.6) saturate(1.5); } }
+  .lunge { animation: bossLunge .5s ease-out; } @keyframes bossLunge { 0% { transform: translateX(0); } 35% { transform: translateX(-42px) scale(1.08); } 100% { transform: translateX(0); } }
+  /* ===== 3D login scene ===== */
+  #authScreen { perspective: 1200px; overflow: hidden; }
+  #authScreen.auth3d { background: radial-gradient(ellipse at 50% 55%, rgba(76,29,149,.35), rgba(8,5,22,.92) 70%); backdrop-filter: none; }
+  #authCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: none; pointer-events: none; }
+  #authScreen.auth3d #authCanvas { display: block; }
+  #authCard { position: relative; overflow: visible; transform-style: preserve-3d; will-change: transform;
+    transform: perspective(1000px) rotateX(var(--ax,0deg)) rotateY(var(--ay,0deg)); transition: transform .12s ease-out, box-shadow .3s;
+    animation: cardIn .9s cubic-bezier(.2,.9,.25,1) backwards, cardFloat 6s ease-in-out 1s infinite; }
+  #authScreen.auth3d #authCard { background: rgba(18,12,38,.62); box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 60px rgba(139,92,246,.35), inset 0 1px 0 rgba(255,255,255,.12); }
+  #authCard::before { content: ""; position: absolute; inset: 10px -10px -14px 10px; border-radius: 1.6rem; background: rgba(124,58,237,.18); transform: translateZ(-40px); filter: blur(2px); z-index: -1; }
+  #authCard .z1 { transform: translateZ(26px); } #authCard .z2 { transform: translateZ(46px); } #authCard .z3 { transform: translateZ(18px); }
+  #authCard .auth-title { filter: drop-shadow(0 6px 10px rgba(0,0,0,.55)) drop-shadow(0 0 14px rgba(167,139,250,.5)); }
+  #authCard #authEmoji { display: inline-block; animation: none; filter: drop-shadow(0 10px 8px rgba(0,0,0,.5)); animation: spin3d 6s linear infinite; }
+  @keyframes spin3d { from { transform: translateZ(60px) rotateY(0deg); } to { transform: translateZ(60px) rotateY(360deg); } }
+  @keyframes cardIn { from { opacity: 0; transform: perspective(1000px) translateZ(-320px) rotateX(28deg); } }
+  @keyframes cardFloat { 0%,100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+  #authScreen.diving #authCard { transition: transform .6s ease-in, opacity .6s; transform: perspective(1000px) translateZ(420px); opacity: 0; }
+  html.lite #authCard, html.lite #authCard * { animation: none !important; transform: none !important; }
+  @media (prefers-reduced-motion: reduce) { #authCard { animation: none; } #authCard #authEmoji { animation: none; } }
+</style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden pb-12">
+<div id="bgScene" aria-hidden="true">
+  <div class="sc-stars"></div><div class="sc-moon"></div><div class="sc-cloud c1"></div><div class="sc-cloud c2"></div>
+  <svg class="sc-layer l1" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0,200 L110,130 L230,190 L360,90 L500,180 L640,120 L780,200 L930,80 L1080,170 L1230,110 L1440,190 L1440,320 L0,320Z"/></svg>
+  <svg class="sc-layer l2" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0,230 L150,150 L290,215 L450,130 L610,220 L760,150 L920,230 L1090,140 L1260,215 L1440,160 L1440,320 L0,320Z"/></svg>
+  <svg class="sc-layer l3" viewBox="0 0 1440 320" preserveAspectRatio="none"><path d="M0,260 L130,200 L270,250 L420,185 L580,255 L740,205 L900,262 L1070,195 L1240,250 L1440,210 L1440,320 L0,320Z"/></svg>
+</div>
+
+  <!-- AUTH SCREEN -->
+  <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+    <canvas id="authCanvas" aria-hidden="true"></canvas>
+    <div id="authCard" class="glass w-full max-w-md p-8 rounded-3xl text-center relative">
+      <div id="authEmoji" class="text-6xl mb-2 z2">🧙‍♂️️</div>
+      <h1 class="auth-title z2 text-3xl font-extrabold bg-gradient-to-r from-amber-300 via-purple-300 to-cyan-300 bg-clip-text text-transparent">CHRONICLES OF AETHERIA</h1>
+      <p class="z1 text-xs text-purple-300 mt-1 mb-6">เปลี่ยนวินัยในชีวิตจริง ให้เป็นพลังการผจญภัย RPG</p>
+
+      <div class="space-y-4 text-left z3">
+        <div>
+          <label class="text-xs text-purple-300 font-bold block mb-1">ชื่อฮีโร่</label>
+          <input id="usernameInput" type="text" placeholder="ตั้งชื่อตัวละคร..." class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 text-white">
+        </div>
+        <div>
+          <label class="text-xs text-purple-300 font-bold block mb-1">รหัสผ่าน</label>
+          <div class="relative"><input id="passwordInput" type="password" placeholder="••••••••" autocomplete="current-password" class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 text-white pr-16"><button type="button" id="pwToggle" onclick="togglePw()" class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-purple-300 hover:text-purple-200">แสดง</button></div>
+          <p class="text-[10px] text-slate-400 mt-1">สมัครใหม่: รหัสอย่างน้อย 6 ตัวอักษร · ข้อมูลเก็บในเบราว์เซอร์นี้ ลืมรหัสแล้วกู้ไม่ได้ ควรกด 💾 เซฟสำรองไว้</p>
+        </div>
+        <div>
+          <label class="text-xs text-purple-300 font-bold block mb-1">เลือกคลาสอาชีพ (Class)</label>
+          <select id="classSelect" onchange="authPickClass()" class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-400 text-white">
+            <option value="WARRIOR">⚔️ WARRIOR (นักรบ - พลังชีวิตสูง ถึกทาน)</option>
+            <option value="ARCHMAGE">🔮 ARCHMAGE (จอมเวท - โจมตีบอสแรงขึ้น)</option>
+            <option value="NINJA">🗡️ SHADOW NINJA (นินจา - ติด Critical สูง)</option>
+            <option value="PALADIN">🛡️ HOLY PALADIN (พาลาดิน - สมดุล + รับ Gold มากขึ้น)</option>
+          </select>
+        </div>
+
+        <div class="flex gap-3 pt-2 z1">
+          <button onclick="handleLogin()" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 font-bold py-3 rounded-xl transition shadow-lg text-sm">เข้าสู่ระบบ</button>
+          <button onclick="handleRegister()" class="flex-1 border border-purple-500/50 hover:bg-purple-900/40 font-bold py-3 rounded-xl transition text-sm">ลงทะเบียน</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GAME CONTAINER -->
+  <div id="mainGame" class="hidden max-w-6xl mx-auto px-4 pt-6 space-y-6">
+
+    <!-- TOP HEADER BAR -->
+    <header class="glass rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div id="heroAvatarIcon" class="w-12 h-12 rounded-xl bg-purple-900/60 border border-purple-400/50 flex items-center justify-center text-2xl shadow-inner">⚔️</div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 id="heroNameDisplay" class="font-bold text-lg text-amber-300">Hero Name</h2>
+            <span id="heroClassBadge" class="text-[10px] bg-purple-900/80 text-purple-200 border border-purple-500/40 px-2 py-0.5 rounded-full font-semibold">WARRIOR</span>
+          </div>
+          <p id="heroTitleDisplay" class="text-xs text-slate-400">ผู้เริ่มต้นแห่งอาณาจักร</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <div class="glass px-3 py-1.5 rounded-xl border-purple-500/30 flex items-center gap-1.5">
+          <span>⭐ LV.</span><b id="lvlDisplay" class="text-amber-400 text-sm">1</b>
+        </div>
+        <div class="glass px-3 py-1.5 rounded-xl border-amber-500/30 flex items-center gap-1.5">
+          <span>💰</span><b id="goldDisplay" class="text-amber-300 text-sm">0</b>
+        </div>
+        <div class="glass px-3 py-1.5 rounded-xl border-cyan-500/30 flex items-center gap-1.5">
+          <span>🎟️ ตั๋ว:</span><b id="ticketsDisplay" class="text-cyan-300 text-sm">0</b>
+        </div>
+        <div class="glass px-3 py-1.5 rounded-xl border-yellow-500/30 flex items-center gap-1.5">
+          <span>⚡ พลังโจมตี:</span><b id="chargesDisplay" class="text-yellow-300 text-sm">0</b>
+        </div>
+        <div class="glass px-3 py-1.5 rounded-xl border-red-500/30 flex items-center gap-1.5">
+          <span>❤️</span><b id="playerHpDisplay" class="text-red-400 text-sm">100/100</b>
+        </div>
+        <div class="glass px-3 py-1.5 rounded-xl border-orange-500/30 flex items-center gap-1.5">
+          <span>🔥</span><b id="streakDisplay" class="text-orange-400 text-sm">1 วัน</b>
+        </div>
+        
+        <!-- Utility Action Buttons -->
+        <button onclick="toggleAudioBGM()" id="bgmBtn" class="bg-indigo-900/60 hover:bg-indigo-800 border border-indigo-500/40 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1">🎵 <span>เพลงสมาธิ</span></button>
+        <button onclick="openShopModal()" class="bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-500/40 px-3 py-1.5 rounded-xl font-bold transition">🛒 ร้านค้า</button>
+        <button onclick="openAchievementsModal()" class="bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-500/40 px-3 py-1.5 rounded-xl font-bold transition">🏅 ความสำเร็จ</button>
+        <button onclick="exportUserData()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2 py-1.5 rounded-xl text-[11px]" title="สำรองไฟล์เซฟ">💾 เซฟ</button>
+        <button onclick="triggerImportSave()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2 py-1.5 rounded-xl text-[11px]" title="โหลดไฟล์เซฟ">📂 โหลด</button>
+        <input type="file" id="importFileInput" onchange="importUserData(event)" class="hidden" accept=".json">
+        <button onclick="toggleTheme()" id="themeBtn" title="สลับธีมสว่าง/มืด" class="glass px-3 py-1.5 rounded-xl text-xs font-bold">🌙 ธีม</button>
+          <button onclick="showTutorial(true)" id="helpBtn" title="วิธีเล่น" class="glass px-3 py-1.5 rounded-xl text-xs font-bold">❓ วิธีเล่น</button>
+          <button onclick="toggleLite()" id="liteBtn" title="ปิดแอนิเมชันหนักๆ ช่วยให้เครื่องช้าลื่นขึ้น" class="glass px-3 py-1.5 rounded-xl text-xs font-bold">🍃 ประหยัดแรง</button>
+          <button onclick="logout()" class="bg-red-900/50 hover:bg-red-800 text-red-200 border border-red-500/40 px-3 py-1.5 rounded-xl font-bold transition">ออก</button>
+      </div>
+    </header>
+
+    <!-- DAILY LOGIN REWARD BANNER -->
+    <div id="dailyLoginBanner" class="glass rounded-2xl p-4 border-amber-500/40 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h4 class="font-extrabold text-sm text-amber-300 flex items-center gap-1.5">
+          <span>📅 เช็กอินรับรางวัลประจำวัน (Daily Login Bonus)</span>
+        </h4>
+        <p class="text-xs text-slate-400">เข้าสู่ระบบต่อเนื่องเพื่อรับ Gold, EXP, ⚡พลังโจมตี และตั๋วกาชาปองฟรี! (ขาดไปหนึ่งวัน สตรีคจะเริ่มนับใหม่)</p>
+      </div>
+      <div id="loginDaysContainer" class="flex gap-2 overflow-x-auto py-1">
+        <!-- Render Days 1-7 via JS -->
+      </div>
+    </div>
+
+    <!-- CHARACTER & CANVAS STAGE -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- HERO & PET CANVAS STAGE -->
+      <div class="glass rounded-3xl p-5 md:col-span-1 flex flex-col items-center justify-between relative overflow-hidden min-h-[380px]">
+        <div class="w-full flex justify-between items-center z-10">
+          <span class="text-xs font-bold text-purple-300 uppercase tracking-wider">ลานฝึก & ตัวละคร 2D</span>
+          <span id="petBadge" class="text-[10px] bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full">สัตว์เลี้ยง: Magi-Cat</span>
+        </div>
+
+        <div id="canvasContainer" class="relative my-auto w-full flex items-center justify-center">
+          <canvas id="rpgCanvas" width="300" height="200" class="w-full max-w-[280px] h-auto"></canvas>
+        <canvas id="hero3d" width="420" height="300" style="display:none;width:100%;height:auto;margin:0 auto"></canvas>
+        <div class="text-[10px] text-slate-500 text-center"><span id="stage3dStatus"></span> <button onclick="retry3D()" class="underline text-purple-300">ลองเปิด 3D ใหม่</button></div>
+          <div id="slashFX" class="pointer-events-none absolute inset-0 hidden flex items-center justify-center">
+            <div class="text-5xl animate-ping">⚔️</div>
+          </div>
+        </div>
+
+        <!-- ACTIVE BUFFS INDICATOR -->
+        <div id="activeBuffsList" class="w-full text-[10px] flex gap-1 justify-center flex-wrap mb-2">
+          <!-- Active Buffs -->
+        </div>
+
+        <!-- EXP PROGRESS BAR -->
+        <div class="w-full z-10 space-y-1">
+          <div class="flex justify-between text-[11px] text-purple-300 font-semibold">
+            <span>EXP ความก้าวหน้า</span>
+            <span id="expText">0/100</span>
+          </div>
+          <div class="w-full h-3 bg-slate-900/90 rounded-full overflow-hidden p-0.5 border border-purple-500/30">
+            <div id="expBar" class="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-cyan-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOSS RAID BATTLE PANEL (MULTIPLE STAGES) -->
+      <div id="bossPanel" class="glass rounded-3xl p-5 md:col-span-2 flex flex-col justify-between relative overflow-hidden border-red-500/30 glow-red">
+        <div id="hitOverlay"></div>
+        <div class="flex justify-between items-start z-10">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="bossStageTitle" class="font-extrabold text-xl text-red-400">⚔️ BOSS RAID - STAGE 1</h3>
+              <span id="bossStageBadge" class="text-[10px] bg-red-950 text-red-300 border border-red-500/50 px-2 py-0.5 rounded-full font-bold animate-pulse">STAGE 1</span>
+            </div>
+            <p id="bossNameDisplay" class="text-xs text-slate-300">Goblin King of Sloth (กอบลินแห่งความขี้เกียจ)</p>
+          </div>
+          <button onclick="openGachaModal()" class="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-extrabold px-4 py-2 rounded-xl shadow-lg transition text-xs flex items-center gap-1.5 glow-gold">
+            <span>🎁 สุ่มกาชาปอง</span>
+            <span class="text-[10px] bg-slate-950/40 text-amber-200 px-1.5 py-0.5 rounded-md">150 💰 หรือ 🎟️</span>
+          </button>
+        </div>
+
+        <div id="battleRow" class="my-4 flex items-center justify-around z-10 gap-4 relative">
+          <canvas id="fxCanvas" aria-hidden="true"></canvas>
+          <!-- HERO STATUS SIDE -->
+          <div class="text-center space-y-1" style="flex:0 1 170px;min-width:96px">
+            <canvas id="battleHero3d" width="300" height="280"></canvas>
+            <div id="battleHeroEmoji" class="text-4xl">🛡️</div>
+            <div class="text-xs font-bold text-slate-200" id="battleHeroName">Hero</div>
+            <div class="w-24 h-2 bg-slate-900 rounded-full mx-auto overflow-hidden border border-red-500/40">
+              <div id="playerHpBar" class="h-full bg-red-500 transition-all duration-300" style="width: 100%"></div>
+            </div>
+          </div>
+
+          <div class="text-center font-extrabold text-2xl text-red-500 animate-pulse">VS</div>
+
+          <!-- BOSS STATUS SIDE -->
+          <div class="text-center space-y-1 relative" style="flex:0 1 300px;min-width:0">
+            <canvas id="boss3d" width="320" height="260" style="display:none;margin:0 auto;max-width:100%"></canvas>
+          <div id="bossSprite" class="text-6xl transition-transform duration-150 inline-block">👹</div>
+            <div id="bossDmgText" class="absolute -top-6 left-1/2 -translate-x-1/2 font-extrabold text-amber-300 text-lg opacity-0 transition-all pointer-events-none">-50</div>
+            <div id="bossNameSub" class="text-xs font-bold text-red-300">Goblin King</div>
+            <div class="w-32 h-3 bg-slate-900 rounded-full mx-auto overflow-hidden border border-red-500/50 p-0.5">
+              <div id="bossHpBar" class="h-full bg-gradient-to-r from-red-600 to-orange-500 rounded-full transition-all duration-300" style="width: 100%"></div>
+            </div>
+            <div id="bossHpText" class="text-[10px] text-red-400 font-bold">200 / 200 HP</div>
+          </div>
+        </div>
+
+        <!-- BATTLE ACTIONS & LOG -->
+        <div class="space-y-2 z-10">
+          <div class="flex gap-2">
+            <button id="attackBtn" onclick="attackBossDirectly()" class="flex-1 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 disabled:opacity-40 disabled:cursor-not-allowed font-extrabold py-3 rounded-2xl text-sm transition shadow-lg flex items-center justify-center gap-2 border border-red-400/40">
+              <span>⚔️ ปล่อยพลังใส่บอส!</span>
+              <span id="chargeBadge" class="text-[10px] bg-black/30 px-2 py-0.5 rounded-full font-normal">⚡ 0</span>
+            </button>
+          </div>
+          <p id="battleLog" class="text-xs text-center text-amber-200/90 font-medium italic min-h-[1.25rem]">ทำภารกิจจริง → ได้ ⚡ พลังโจมตี → กดปล่อยใส่บอส! (พลังไม่ได้มาจากการกดปุ่ม แต่มาจากสิ่งที่คุณลงมือทำจริง)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SELF-DEVELOPMENT: REFLECTION JOURNAL & LIFE BALANCE -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="glass rounded-3xl p-6 lg:col-span-2 space-y-3">
+        <div class="flex items-center justify-between border-b border-purple-500/20 pb-3">
+          <div>
+            <h3 class="font-extrabold text-lg text-amber-300">📓 บันทึกสะท้อนตัวเอง (Daily Reflection)</h3>
+            <p class="text-xs text-slate-400">เขียนสั้นๆ วันละครั้ง ได้ +15 EXP และ ⚡1 (รับรางวัลได้วันละครั้ง)</p>
+          </div>
+          <span id="journalCountBadge" class="text-xs bg-purple-900/80 text-purple-200 px-2 py-0.5 rounded-full border border-purple-500/30">0 บันทึก</span>
+        </div>
+        <p id="journalPrompt" class="text-xs text-purple-300 italic"></p>
+        <textarea id="journalInput" rows="3" maxlength="500" placeholder="เขียนความคิดของคุณที่นี่..." class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-400 text-white"></textarea>
+        <div class="flex items-center justify-between gap-2">
+          <span id="journalStatus" class="text-[11px] text-slate-400"></span>
+          <button onclick="saveJournalEntry()" class="bg-purple-600 hover:bg-purple-500 font-bold px-4 py-2 rounded-xl text-xs transition">💾 บันทึก</button>
+        </div>
+        <div id="journalList" class="space-y-2 max-h-[220px] overflow-y-auto pr-1"></div>
+      </div>
+      <div class="glass rounded-3xl p-6 space-y-3">
+        <h3 class="font-extrabold text-lg text-amber-300">⚖️ สมดุลชีวิต (7 วันล่าสุด)</h3>
+        <p class="text-xs text-slate-400">จำนวนภารกิจที่ทำสำเร็จแยกตามหมวด ดูว่าด้านไหนถูกละเลยไป</p>
+        <div id="balanceBars" class="space-y-2"></div>
+        <p id="balanceHint" class="text-[11px] text-amber-200/90 italic"></p>
+      </div>
+    </div>
+
+    <!-- LONG-TERM GOALS & WEEKLY REVIEW -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="glass rounded-3xl p-6 lg:col-span-2 space-y-3">
+        <div class="border-b border-purple-500/20 pb-3">
+          <h3 class="font-extrabold text-lg text-amber-300">🏔️ เป้าหมายระยะยาว (Goals)</h3>
+          <p class="text-xs text-slate-400">แตกเป้าหมายใหญ่เป็นขั้นตอนเล็กๆ: แต่ละขั้น +30 EXP, ⚡1 · บรรลุเป้า (3 ขั้นขึ้นไป) +100 EXP, +100 💰, 🎟️1</p>
+        </div>
+        <div id="goalList" class="space-y-3"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-3 border-t border-purple-500/20">
+          <input id="goalTitle" type="text" maxlength="80" placeholder="เป้าหมาย เช่น สอบผ่านวิชาสถิติ" class="sm:col-span-2 bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
+          <select id="goalCat" class="bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400"><option value="health">💪 สุขภาพกาย</option><option value="learn">📚 การเรียนรู้</option><option value="mind">🧘 จิตใจ</option><option value="skill">🛠️ ทักษะ</option><option value="life" selected>🏡 วินัย</option></select>
+          <input id="goalDue" type="date" class="bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
+          <button onclick="addGoal()" class="bg-purple-600 hover:bg-purple-500 font-bold px-3 py-2 rounded-xl text-xs transition">ตั้งเป้าหมาย</button>
+        </div>
+      </div>
+      <div class="glass rounded-3xl p-6 space-y-3">
+        <h3 class="font-extrabold text-lg text-amber-300">📊 ทบทวนรายสัปดาห์</h3>
+        <div id="weeklyReview" class="space-y-2 text-xs"></div>
+        <button onclick="weeklyReviewToJournal()" class="w-full bg-indigo-600 hover:bg-indigo-500 font-bold px-3 py-2 rounded-xl text-xs transition">📝 เขียนทบทวนสัปดาห์ลงบันทึก</button>
+      </div>
+    </div>
+
+    <!-- DAILY SCHEDULE & ACTIVITY LOG SECTION -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- DAILY SCHEDULE (1 COL) -->
+      <div class="glass rounded-3xl p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-purple-500/20 pb-3">
+          <h3 class="font-extrabold text-lg text-amber-300 flex items-center gap-2">
+            <span>📅 ตารางเวลารายวัน</span>
+          </h3>
+          <span class="text-xs text-purple-300">ตารางวันนี้</span>
+        </div>
+
+        <div id="scheduleList" class="space-y-2.5">
+          <!-- Schedule Items Injected JS -->
+        </div>
+        <div class="pt-3 border-t border-purple-500/20 space-y-2">
+          <h4 class="text-xs font-bold text-purple-300">➕ เพิ่มกิจกรรมในตารางประจำวัน</h4>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="schedStart" type="time" value="19:00" class="bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
+            <input id="schedEnd" type="time" value="20:00" class="bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
+          </div>
+          <input id="schedTask" type="text" maxlength="60" placeholder="ชื่อกิจกรรม เช่น อ่านหนังสือสอบ" class="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
+          <button onclick="addScheduleItem()" class="w-full bg-purple-600 hover:bg-purple-500 font-bold px-3 py-2 rounded-xl text-xs transition">เพิ่มเข้าตาราง (ใช้ซ้ำทุกวัน)</button>
+          <label class="flex items-center gap-2 text-[11px] text-slate-300"><input id="reminderToggle" type="checkbox" onchange="toggleReminders()"> 🔔 เตือนตามเวลา (ทำงานเมื่อเปิดหน้านี้ไว้)</label>
+          <div id="backupStatus" class="text-[10px] text-slate-500"></div>
+        </div>
+      </div>
+
+      <!-- ACTIVITY HISTORY LOG (2 COLS) -->
+      <div class="glass rounded-3xl p-6 lg:col-span-2 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-500/20 pb-3">
+          <div>
+            <h3 class="font-extrabold text-lg text-amber-300 flex items-center gap-2">
+              <span>📊 ประวัติการทำกิจกรรม</span>
+            </h3>
+            <p class="text-xs text-slate-400">บันทึกความก้าวหน้าและการทำกิจกรรมทั้งหมดในระบบ</p>
+          </div>
+          <button onclick="handleClearAllLogs()" class="text-xs bg-red-900/40 hover:bg-red-800 border border-red-500/40 text-red-200 px-3 py-1.5 rounded-xl transition self-start sm:self-auto">
+            🗑️ ล้างประวัติทั้งหมด
+          </button>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input id="historySearchInput" oninput="renderHistoryLogUI()" type="text" placeholder="🔍 ค้นหากิจกรรม..." class="bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-purple-400">
+          <select id="historyFilterSelect" onchange="renderHistoryLogUI()" class="bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-purple-400">
+            <option value="ALL">สถานะทั้งหมด</option>
+            <option value="SUCCESS">🟢 สำเร็จ (Success)</option>
+            <option value="FAILED">🔴 ไม่สำเร็จ (Failed)</option>
+          </select>
+        </div>
+
+        <!-- History Log Table -->
+        <div class="overflow-x-auto rounded-xl border border-purple-500/20 max-h-[220px] overflow-y-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900/90 text-purple-300 sticky top-0">
+              <tr>
+                <th class="p-2.5">เวลาที่บันทึก</th>
+                <th class="p-2.5">ชื่อกิจกรรม</th>
+                <th class="p-2.5">ระยะเวลา</th>
+                <th class="p-2.5">สถานะ</th>
+                <th class="p-2.5 text-right">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-purple-500/10 text-slate-300">
+              <!-- Logs injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTS & FOCUS TIMER SECTION -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- DAILY QUEST LIST (2 COLS) -->
+      <div class="glass rounded-3xl p-6 lg:col-span-2 space-y-4">
+        <div class="flex items-center justify-between border-b border-purple-500/20 pb-3">
+          <div>
+            <h3 class="font-extrabold text-lg text-amber-300 flex items-center gap-2">
+              <span>🎯 ภารกิจรายวันประจำวัน</span>
+              <span id="questCountBadge" class="text-xs bg-purple-900/80 text-purple-200 px-2 py-0.5 rounded-full border border-purple-500/30">3 ภารกิจ</span>
+            </h3>
+            <p class="text-xs text-slate-400">ระบบแนะนำ 3 ข้อจากคนละหมวดทุกวัน ส่วนภารกิจของคุณเองจะอยู่ต่อทุกวัน (ทำสำเร็จ = EXP + Gold + ⚡พลังโจมตี, รับรางวัลได้ไม่เกิน 8 ภารกิจ/วัน)</p>
+          </div>
+          <div class="flex flex-col items-center shrink-0" title="จำนวนภารกิจที่รับรางวัลแล้ววันนี้">
+            <svg width="50" height="50" viewBox="0 0 50 50" aria-label="ความคืบหน้ารางวัลวันนี้">
+              <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(139,92,246,.28)" stroke-width="5"/>
+              <circle id="dailyRingArc" cx="25" cy="25" r="20" fill="none" stroke="#fbbf24" stroke-width="5" stroke-linecap="round" stroke-dasharray="125.66" stroke-dashoffset="125.66" transform="rotate(-90 25 25)"/>
+              <text id="dailyRingText" x="25" y="29" text-anchor="middle" font-size="12" font-weight="700" fill="#fde68a">0/8</text>
+            </svg>
+            <span class="text-[9px] text-slate-400 -mt-1">รางวัลวันนี้</span>
+          </div>
+        </div>
+
+        <!-- QUEST CONTAINER -->
+        <div id="questList" class="space-y-3 min-h-[200px]">
+          <!-- Quests injected via JS -->
+        </div>
+
+        <!-- ADD NEW TASK FORM -->
+        <div class="pt-4 border-t border-purple-500/20">
+          <h4 class="text-xs font-bold text-purple-300 mb-2">➕ สร้างภารกิจส่วนตัวเพิ่ม</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-5 gap-2">
+            <input id="newQuestTitle" type="text" maxlength="80" placeholder="ชื่อภารกิจ (ไม่เกิน 80 ตัวอักษร)" class="sm:col-span-2 bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-400 text-white">
+            <select id="newQuestCat" class="bg-slate-900 border border-purple-500/30 rounded-xl px-2 py-2 text-xs text-white">
+              <option value="health">💪 สุขภาพกาย</option>
+              <option value="learn">📚 การเรียนรู้</option>
+              <option value="mind">🧘 จิตใจ & สมาธิ</option>
+              <option value="skill">🛠️ ทักษะ & อาชีพ</option>
+              <option value="life" selected>🏡 วินัย & ชีวิตประจำวัน</option>
+            </select>
+            <select id="newQuestDiff" class="bg-slate-900 border border-purple-500/30 rounded-xl px-2 py-2 text-xs text-white">
+              <option value="EASY">🟢 ง่าย (+20 EXP, 10 💰, ⚡1)</option>
+              <option value="NORMAL" selected>🟡 ปกติ (+40 EXP, 25 💰, ⚡2)</option>
+              <option value="HARD">🔴 ยาก (+70 EXP, 50 💰, ⚡3)</option>
+            </select>
+            <button onclick="addCustomQuest()" class="bg-purple-600 hover:bg-purple-500 font-bold px-3 py-2 rounded-xl text-xs transition">สร้างภารกิจ</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOCUS TIMER & INVENTORY PANEL -->
+      <div class="space-y-6">
+        
+        <!-- FOCUS TRAINING TIMER -->
+        <div class="glass rounded-3xl p-5 space-y-3 text-center border-indigo-500/30">
+          <h3 class="font-extrabold text-base text-indigo-300">📚 ห้องฝึกฝนสมาธิ (Focus Timer)</h3>
+          <p id="activeFocusLabel" class="text-[11px] text-slate-400">กำลังทำ: ฝึกฝนสมาธิทั่วไป</p>
+          <p id="speedPerkNotice" class="text-[10px] text-amber-300 hidden">⚡ สวมใส่อุปกรณ์เร่งเวลา: ความเร็ว x1.0 เท่า</p>
+
+          <div id="timerDisplay" class="text-4xl font-extrabold text-amber-300 my-2 tracking-wider font-mono">25:00</div>
+
+          <div class="flex justify-center gap-2">
+            <button id="timerStartBtn" onclick="toggleTimer()" class="bg-indigo-600 hover:bg-indigo-500 font-bold px-4 py-2 rounded-xl text-xs transition">▶ เริ่มฝึกฝน</button>
+            <button onclick="resetTimer()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 font-bold px-3 py-2 rounded-xl text-xs transition">↺ รีเซ็ต</button>
+          </div>
+        </div>
+
+        <!-- EQUIPMENT & INVENTORY -->
+        <div class="glass rounded-3xl p-5 space-y-3">
+          <h3 class="font-extrabold text-base text-amber-300 flex items-center justify-between">
+            <span>🛡️ อุปกรณ์สวมใส่ & กระเป๋า</span>
+            <span id="invCount" class="text-xs font-normal text-slate-400">0 รายการ</span>
+          </h3>
+
+          <!-- ACTIVE EQUIPMENT SLOTS -->
+          <div class="grid grid-cols-2 gap-2 bg-slate-900/80 p-2.5 rounded-2xl border border-purple-500/30">
+            <div class="text-center p-2 border border-dashed border-amber-500/40 rounded-xl relative">
+              <span class="text-[9px] text-slate-400 block font-bold">⚔️ ช่องอาวุธ</span>
+              <div id="equippedWeapon" class="text-xs font-bold text-amber-300 truncate mt-1">ไม่มี</div>
+              <button id="unequipWpnBtn" onclick="unequipItem('WEAPON')" class="hidden text-[9px] bg-red-900/60 text-red-200 px-1.5 py-0.5 rounded mt-1">ถอด</button>
+            </div>
+            <div class="text-center p-2 border border-dashed border-cyan-500/40 rounded-xl relative">
+              <span class="text-[9px] text-slate-400 block font-bold">💍 ช่องเครื่องประดับ</span>
+              <div id="equippedAccessory" class="text-xs font-bold text-cyan-300 truncate mt-1">ไม่มี</div>
+              <button id="unequipAccBtn" onclick="unequipItem('ACCESSORY')" class="hidden text-[9px] bg-red-900/60 text-red-200 px-1.5 py-0.5 rounded mt-1">ถอด</button>
+            </div>
+          </div>
+
+          <div id="inventoryList" class="grid grid-cols-1 gap-2 max-h-[160px] overflow-y-auto pr-1">
+            <div class="text-center text-xs text-slate-500 py-4">ยังไม่มีไอเทม (สุ่มได้จากหมุนกาชาปอง)</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- GACHA MODAL -->
+  <div id="gachaModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="glass w-full max-w-sm p-6 rounded-3xl text-center space-y-4 border-amber-500/40 glow-gold relative">
+      <button onclick="closeGachaModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold">✕</button>
+      <div class="text-5xl animate-bounce">🎁</div>
+      <h3 class="font-extrabold text-xl text-amber-300">ตู้สุ่มกาชาปองตำนาน</h3>
+      <p class="text-xs text-slate-300">ลุ้นรับอาวุธระดับตำนาน, บัฟเร่งเวลา และสัตว์เลี้ยงพิเศษ!</p>
+
+      <div id="gachaResult" class="hidden py-4 border border-amber-500/30 rounded-2xl bg-slate-900 space-y-1">
+        <div id="gachaIcon" class="text-4xl">⚔</div>
+        <div id="gachaName" class="font-bold text-amber-300 text-sm">Excalibur</div>
+        <div id="gachaType" class="text-[10px] text-purple-300">WEAPON SKIN</div>
+        <div id="gachaDesc" class="text-[10px] text-emerald-300 font-semibold">พลังโจมตี +25</div>
+      </div>
+
+      <div class="space-y-2">
+        <button onclick="pullGacha('GOLD')" class="w-full bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-extrabold py-2.5 rounded-xl transition text-xs shadow-lg glow-gold">
+          หมุนด้วยทอง (150 💰)
+        </button>
+        <button onclick="pullGacha('TICKET')" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-extrabold py-2.5 rounded-xl transition text-xs shadow-lg glow-cyan">
+          หมุนด้วยตั๋ว (🎟️ 1 ใบ)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECT SHOP MODAL -->
+  <div id="shopModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4 border-emerald-500/40 relative">
+      <button onclick="closeShopModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold">✕</button>
+      <div class="flex items-center gap-2 border-b border-emerald-500/30 pb-3">
+        <span class="text-3xl">🛒</span>
+        <div>
+          <h3 class="font-extrabold text-lg text-emerald-300">ร้านค้าแลกซื้อไอเทม (Direct Shop)</h3>
+          <p class="text-xs text-slate-400">ใช้ทองซื้อไอเทมและตั๋วกาชาปองได้โดยตรง</p>
+        </div>
+      </div>
+
+      <div class="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+        <div class="glass p-3 rounded-2xl flex items-center justify-between border-emerald-500/20">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🎟️</span>
+            <div>
+              <div class="font-bold text-xs text-slate-200">ตั๋วสุ่มกาชาปอง (1 ใบ)</div>
+              <div class="text-[10px] text-slate-400">ใช้หมุนตู้สุ่มกาชาแทนทองคำ</div>
+            </div>
+          </div>
+          <button onclick="buyShopItem('TICKET', 120)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs">120 💰</button>
+        </div>
+
+        <div class="glass p-3 rounded-2xl flex items-center justify-between border-emerald-500/20">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🧪</span>
+            <div>
+              <div class="font-bold text-xs text-slate-200">ยาบัฟ EXP Booster</div>
+              <div class="text-[10px] text-slate-400">รับ EXP ทันที +50 แต้ม</div>
+            </div>
+          </div>
+          <button onclick="buyShopItem('EXP_BOOST', 200)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs">200 💰</button>
+        </div>
+
+        <div class="glass p-3 rounded-2xl flex items-center justify-between border-emerald-500/20">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🍷</span>
+            <div>
+              <div class="font-bold text-xs text-slate-200">ยาฟื้นฟูพลังชีวิต (Health Potion)</div>
+              <div class="text-[10px] text-slate-400">ฟื้นฟู HP ของฮีโร่กลับมาเต็มทันที</div>
+            </div>
+          </div>
+          <button onclick="buyShopItem('HEAL_POTION', 80)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs">80 💰</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACHIEVEMENTS MODAL -->
+  <div id="achievementsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4 border-purple-500/40 relative">
+      <button onclick="closeAchievementsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white font-bold">✕</button>
+      <div class="flex items-center gap-2 border-b border-purple-500/30 pb-3">
+        <span class="text-3xl">🏅</span>
+        <div>
+          <h3 class="font-extrabold text-lg text-purple-300">เกียรติยศและความสำเร็จ (Achievements)</h3>
+          <p class="text-xs text-slate-400">ทำตามเป้าหมายเพื่อรับรางวัลทองและฉายาพิเศษ</p>
+        </div>
+      </div>
+
+      <div id="achievementsList" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+<script>
+// --- GAME STATE & DB ---
+const DB_KEY = "AETHERIA_RPG_MULTI_USERS_V5";
+let usersDB = {};
+try { usersDB = JSON.parse(localStorage.getItem(DB_KEY) || "{}") || {}; } catch (e) { usersDB = {}; }
+let currentUser = null;
+let currentFocusTaskName = "ฝึกฝนสมาธิทั่วไป";
+let currentFocusTaskMinutes = 25; // Default minutes
+let currentFocusTaskId = null;
+const DEFAULT_FOCUS_NAME = "ฝึกฝนสมาธิทั่วไป";
+
+// ---- helpers ----
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function hasNotif() { return typeof Notification !== "undefined"; }
+function cloneSchedule() {
+  const src = (typeof currentUser !== "undefined" && currentUser && Array.isArray(currentUser.scheduleTemplate)) ? currentUser.scheduleTemplate : DEFAULT_SCHEDULE;
+  return src.map(t => ({ id: t.id, time: t.time, task: t.task, status: "PENDING" }));
+}
+const CLASS_ICONS = { WARRIOR: "⚔️", ARCHMAGE: "🔮", NINJA: "🗡️", PALADIN: "🛡️" };
+function petIcon(name) { return name === "Magi-Cat" ? "🐱" : name === "Baby Dragon" ? "🐲" : "🐾"; }
+
+// ---- non-blocking notifications: every alert() becomes a toast ----
+function showToast(msg) {
+  let box = document.getElementById("toastBox");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "toastBox";
+    box.className = "fixed top-3 right-3 z-[100] space-y-2 w-[min(92vw,22rem)]";
+    document.body.appendChild(box);
+  }
+  const t = document.createElement("div");
+  t.className = "glass px-4 py-3 rounded-xl text-xs text-slate-100 border border-purple-500/40 shadow-xl cursor-pointer whitespace-pre-wrap";
+  t.textContent = String(msg);
+  t.onclick = () => t.remove();
+  box.appendChild(t);
+  setTimeout(() => t.remove(), Math.min(9000, 3500 + String(msg).length * 40));
+  while (box.children.length > 5) box.removeChild(box.firstChild);
+}
+window.alert = showToast;
+
+// ---- self-development config ----
+const DAILY_REWARD_CAP = 8; // max quests per day that give EXP/Gold/charges (rest is healthy)
+const CHARGES_BY_DIFF = { EASY: 1, NORMAL: 2, HARD: 3 };
+const CATEGORIES = {
+  health: { label: "สุขภาพกาย", icon: "💪", bar: "bg-emerald-500" },
+  learn:  { label: "การเรียนรู้", icon: "📚", bar: "bg-sky-500" },
+  mind:   { label: "จิตใจ & สมาธิ", icon: "🧘", bar: "bg-purple-500" },
+  skill:  { label: "ทักษะ & อาชีพ", icon: "🛠️", bar: "bg-amber-500" },
+  life:   { label: "วินัย & ชีวิตประจำวัน", icon: "🏡", bar: "bg-rose-500" }
+};
+const JOURNAL_PROMPTS = [
+  "วันนี้คุณภูมิใจกับอะไรมากที่สุด?",
+  "วันนี้เรียนรู้อะไรใหม่ หรือพลาดอะไรแล้วได้บทเรียน?",
+  "ขอบคุณอะไรหรือใครบ้างในวันนี้ (ลองเขียน 3 อย่าง)?",
+  "สิ่งเดียวที่ถ้าทำพรุ่งนี้ จะทำให้ชีวิตดีขึ้นคืออะไร?",
+  "อะไรดึงพลังงานคุณวันนี้ และอะไรเติมพลังให้คุณ?",
+  "ถ้าวันนี้ทำให้ดีขึ้นอีก 1% คุณจะเปลี่ยนอะไร?",
+  "เป้าหมายใหญ่ของคุณขยับเข้าใกล้ขึ้นแค่ไหนในสัปดาห์นี้?"
+];
+
+// ---- date helpers (local calendar day keys: YYYY-MM-DD) ----
+function todayKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function normDateKey(s) {
+  if (!s) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s); // legacy saves used toDateString()
+  return isNaN(d) ? "" : todayKey(d);
+}
+function dayDiff(aKey, bKey) {
+  const [ay, am, ad] = aKey.split("-").map(Number), [by, bm, bd] = bKey.split("-").map(Number);
+  return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86400000);
+}
+function nextQuestId() {
+  let id = Date.now();
+  while (currentUser.quests.some(q => q.id === id)) id++;
+  return id;
+}
+function uniquifyQuestIds(list) {
+  const seen = new Set();
+  let maxId = list.reduce((m, q) => Math.max(m, Number(q.id) || 0), 0);
+  list.forEach(q => { if (seen.has(q.id)) q.id = ++maxId; seen.add(q.id); });
+  return list;
+}
+function ensureDaily() {
+  const t = todayKey();
+  if (!currentUser.daily || currentUser.daily.date !== t) currentUser.daily = { date: t, rewarded: 0, journal: false };
+  return currentUser.daily;
+}
+function streakBonus() { return Math.min(0.5, Math.max(0, (currentUser.streak || 1) - 1) * 0.05); }
+function recordCategory(cat) {
+  const k = todayKey();
+  const hist = currentUser.catHistory;
+  hist[k] = hist[k] || {};
+  hist[k][cat] = (hist[k][cat] || 0) + 1;
+  Object.keys(hist).forEach(key => { if (dayDiff(key, k) > 30) delete hist[key]; });
+}
+function weeklyCategoryTotals() {
+  const k = todayKey(), tot = {};
+  Object.keys(CATEGORIES).forEach(c => tot[c] = 0);
+  Object.entries(currentUser.catHistory || {}).forEach(([key, v]) => {
+    const d = dayDiff(key, k);
+    if (d >= 0 && d < 7) Object.entries(v).forEach(([c, n]) => { if (tot[c] !== undefined) tot[c] += Number(n) || 0; });
+  });
+  return tot;
+}
+
+// ---- password hashing (salted SHA-256, no plaintext stored) ----
+const SHA_K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+function sha256(str) {
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  const bytes = new TextEncoder().encode(str), l = bytes.length;
+  const buf = new Uint8Array(((l + 9 + 63) >> 6) << 6);
+  buf.set(bytes); buf[l] = 0x80;
+  const dv = new DataView(buf.buffer);
+  dv.setUint32(buf.length - 8, Math.floor((l * 8) / 0x100000000));
+  dv.setUint32(buf.length - 4, (l * 8) >>> 0);
+  let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const w = new Uint32Array(64);
+  for (let off = 0; off < buf.length; off += 64) {
+    for (let i = 0; i < 16; i++) w[i] = dv.getUint32(off + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const s0 = rotr(w[i-15], 7) ^ rotr(w[i-15], 18) ^ (w[i-15] >>> 3);
+      const s1 = rotr(w[i-2], 17) ^ rotr(w[i-2], 19) ^ (w[i-2] >>> 10);
+      w[i] = (w[i-16] + s0 + w[i-7] + s1) >>> 0;
+    }
+    let [a, b, c, d, e, f, g, hh] = H;
+    for (let i = 0; i < 64; i++) {
+      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (hh + S1 + ch + SHA_K[i] + w[i]) >>> 0;
+      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const t2 = (S0 + maj) >>> 0;
+      hh = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    H = [a, b, c, d, e, f, g, hh].map((v, i) => (H[i] + v) >>> 0);
+  }
+  return H.map(v => v.toString(16).padStart(8, "0")).join("");
+}
+function newSalt() {
+  try { const a = new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a, b => b.toString(16).padStart(2, "0")).join(""); }
+  catch (e) { return Math.random().toString(16).slice(2) + Date.now().toString(16); }
+}
+function hashPassword(pw, salt) {
+  let x = sha256(salt + ":" + pw);
+  for (let i = 0; i < 1500; i++) x = sha256(x + salt);
+  return x;
+}
+function hasUser(u) { return Object.prototype.hasOwnProperty.call(usersDB, u); }
+function verifyPassword(rec, p) {
+  if (rec && typeof rec.passHash === "string" && typeof rec.salt === "string") return hashPassword(p, rec.salt) === rec.passHash;
+  if (rec && typeof rec.password === "string") {   // legacy plaintext save: check, then upgrade to a hash
+    if (rec.password !== p) return false;
+    rec.salt = newSalt(); rec.passHash = hashPassword(p, rec.salt); delete rec.password;
+    return true;
+  }
+  return false;
+}
+function ensurePasswordFields(d) {
+  if (typeof d.passHash === "string" && d.passHash && typeof d.salt === "string" && d.salt) { delete d.password; return true; }
+  if (typeof d.password === "string" && d.password) { d.salt = newSalt(); d.passHash = hashPassword(d.password, d.salt); delete d.password; return true; }
+  const ex = hasUser(d.username) ? usersDB[d.username] : null;
+  if (ex && ex.passHash && ex.salt) { d.passHash = ex.passHash; d.salt = ex.salt; return true; }
+  if (ex && typeof ex.password === "string" && ex.password) { d.salt = newSalt(); d.passHash = hashPassword(ex.password, d.salt); return true; }
+  return false;
+}
+
+// BOSS STAGES PRESETS
+const BOSS_STAGES = [
+  { stage: 1, name: "Goblin King of Sloth", title: "กอบลินแห่งความขี้เกียจ", hp: 200, atk: 8, icon: "👹", rewardGold: 150 },
+  { stage: 2, name: "Orc Warlord of Distraction", title: "ออร์กแห่งการเสียสมาธิ", hp: 450, atk: 15, icon: "👺", rewardGold: 250 },
+  { stage: 3, name: "Shadow Dragon of Procrastination", title: "มังกรแห่งการผลัดวันประกันพรุ่ง", hp: 800, atk: 25, icon: "🐉", rewardGold: 400 },
+  { stage: 4, name: "Abyssal Demon King of Burnout", title: "จอมปีศาจแห่งความเหนื่อยล้า", hp: 1300, atk: 35, icon: "👿", rewardGold: 600 },
+  { stage: 5, name: "Void God of Chaos", title: "เทพแห่งความสับสนวุ่นวาย", hp: 2000, atk: 50, icon: "👾", rewardGold: 1000 }
+];
+
+// Default Daily Schedule Template
+const LEGACY_SCHEDULE_KEY = JSON.stringify([[1,"08:00 - 09:00","วอร์มอัพร่างกาย & นั่งสมาธิ"],[2,"09:00 - 12:00","ลุยภารกิจหลัก Session Morning"],[3,"13:00 - 15:00","ฝึกฝนทักษะเฉพาะทาง / อ่านหนังสือ"],[4,"15:00 - 17:00","ทบทวนภารกิจประจำวัน & Boss Raid"]]);
+const DEFAULT_SCHEDULE = [
+  { id: 1, time: "08:00 - 08:15", task: "วอร์มอัพร่างกาย & นั่งสมาธิ", status: "PENDING" },
+  { id: 2, time: "09:00 - 09:25", task: "ลุยภารกิจหลัก (โฟกัส 25 นาที)", status: "PENDING" },
+  { id: 3, time: "13:00 - 13:25", task: "ฝึกทักษะเฉพาะทาง / อ่านหนังสือ", status: "PENDING" },
+  { id: 4, time: "15:00 - 15:15", task: "ทบทวนภารกิจประจำวัน & Boss Raid", status: "PENDING" }
+];
+
+const QUEST_POOL = [
+  // สุขภาพกาย
+  { cat: "health", title: "ดื่มน้ำสะอาดครบ 2 ลิตร", diff: "EASY", icon: "💧" },
+  { cat: "health", title: "เดินหรือยืดเส้นยืดสาย 10 นาที", diff: "EASY", icon: "🚶" },
+  { cat: "health", title: "ออกกำลังกายอย่างน้อย 20 นาที", diff: "HARD", icon: "🏋️‍♂️" },
+  { cat: "health", title: "เข้านอนก่อนเวลา 23:00 น.", diff: "HARD", icon: "🌙" },
+  { cat: "health", title: "งดของหวานและน้ำตาลหลัง 20:00 น.", diff: "NORMAL", icon: "🥗" },
+  // การเรียนรู้
+  { cat: "learn", title: "อ่านหนังสือหรือบทความ 20 นาที", diff: "NORMAL", icon: "📖" },
+  { cat: "learn", title: "เรียนรู้เรื่องใหม่ 1 เรื่อง แล้วสรุปเป็นประโยคของตัวเอง", diff: "NORMAL", icon: "💡" },
+  { cat: "learn", title: "ทบทวนบทเรียนที่เรียนมา 15 นาที", diff: "NORMAL", icon: "📝" },
+  { cat: "learn", title: "ฝึกภาษาที่กำลังเรียน 15 นาที", diff: "NORMAL", icon: "🗣️" },
+  // จิตใจ & สมาธิ
+  { cat: "mind", title: "นั่งสมาธิและฝึกหายใจ 10 นาที", diff: "EASY", icon: "🧘‍♂️" },
+  { cat: "mind", title: "เขียนสิ่งที่ขอบคุณ 3 อย่าง", diff: "EASY", icon: "🙏" },
+  { cat: "mind", title: "วางมือถือให้ไกลตัว 30 นาทีขณะทำงาน (Digital Detox)", diff: "NORMAL", icon: "📵" },
+  // ทักษะ & อาชีพ
+  { cat: "skill", title: "ฝึกทักษะหลักของคุณ 30 นาที", diff: "HARD", icon: "🛠️" },
+  { cat: "skill", title: "ทำโปรเจกต์สำคัญให้คืบหน้า 1 ขั้น", diff: "HARD", icon: "🚀" },
+  { cat: "skill", title: "เขียน To-Do 3 ข้อสำคัญที่สุดของวัน", diff: "NORMAL", icon: "✍️" },
+  // วินัย & ชีวิตประจำวัน
+  { cat: "life", title: "จัดโต๊ะหรือห้อง 10 นาที", diff: "EASY", icon: "🧹" },
+  { cat: "life", title: "จดรายรับรายจ่ายของวันนี้", diff: "NORMAL", icon: "💰" },
+  { cat: "life", title: "ทักทายหรือขอบคุณคนสำคัญในชีวิต 1 คน", diff: "NORMAL", icon: "💬" }
+];
+
+const GACHA_ITEMS = [
+  { id: "g1", name: "ดาบแสงสุริยะ (Solar Blade)", type: "WEAPON", icon: "🗡️", bonusAtk: 25, speedMult: 1.1, desc: "พลังโจมตี +25, Speed x1.1" },
+  { id: "g2", name: "คทาจอมเวทนิรันดร์ (Arcane Staff)", type: "WEAPON", icon: "🪄", bonusAtk: 35, speedMult: 1.15, desc: "พลังโจมตี +35, Speed x1.15" },
+  { id: "g3", name: "แหวนเร่งเวลา (Time Ring)", type: "ACCESSORY", icon: "💍", bonusAtk: 10, speedMult: 1.2, expMult: 1.2, desc: "Speed x1.2, EXP x1.2" },
+  { id: "g4", name: "สร้อยคอแห่งโชคลาภ (Fortune Amulet)", type: "ACCESSORY", icon: "📿", bonusAtk: 5, goldMult: 1.25, desc: "ได้รับ Gold +25%" },
+  { id: "g5", name: "ฉายา: ผู้พิชิตมังกร", type: "TITLE", icon: "👑", titleText: "🐲 ผู้พิชิตมังกร", desc: "ปลดล็อกฉายาพิเศษ" },
+  { id: "g6", name: "สัตว์เลี้ยง: Baby Dragon", type: "PET", icon: "🐲", petName: "Baby Dragon", desc: "สัตว์เลี้ยงใหม่" }
+];
+
+const ACHIEVEMENTS_DEF = [
+  { id: "ach_1", title: "Focus Master I", desc: "ฝึกฝนสมาธิสำเร็จครบ 3 ครั้ง", reqType: "FOCUS_COUNT", target: 3, rewardGold: 150, titleReward: "🧠 จิตสงบนิ่ง" },
+  { id: "ach_2", title: "Boss Slayer", desc: "สร้างความเสียหายแก่บอสสะสมครบ 500 HP", reqType: "BOSS_DMG", target: 500, rewardGold: 200, titleReward: "⚔️ ผู้หาญกล้า" },
+  { id: "ach_3", title: "Gacha Addict", desc: "หมุนกาชาปองครบ 5 ครั้ง", reqType: "GACHA_PULLS", target: 5, rewardGold: 100, titleReward: "🎲 นักเสี่ยงโชค" },
+  { id: "ach_4", title: "Quest Hero", desc: "ทำภารกิจสำเร็จครบ 5 ภารกิจ", reqType: "QUEST_COUNT", target: 5, rewardGold: 180, titleReward: "🌟 ฮีโร่ผู้ขยันขันแข็ง" },
+  { id: "ach_5", title: "Streak Legend", desc: "มีสตรีคเช็กอินครบ 3 วัน", reqType: "STREAK", target: 3, rewardGold: 250, titleReward: "🔥 วินัยดุจเหล็กกล้า" },
+  { id: "ach_6", title: "Weekly Warrior", desc: "เช็กอินต่อเนื่องครบ 7 วัน", reqType: "STREAK", target: 7, rewardGold: 400, titleReward: "🗓️ ผู้รักษาวินัย" },
+  { id: "ach_7", title: "Reflective Mind", desc: "เขียนบันทึกสะท้อนตัวเองครบ 5 วัน", reqType: "JOURNAL_COUNT", target: 5, rewardGold: 200, titleReward: "📓 ผู้รู้จักตนเอง" },
+  { id: "ach_8", title: "Balanced Life", desc: "ทำภารกิจครบทั้ง 5 หมวดภายใน 7 วัน", reqType: "BALANCE", target: 5, rewardGold: 300, titleReward: "⚖️ ชีวิตสมดุล" }
+];
+
+const CLASS_PRESETS = {
+  WARRIOR: { hp: 150, atk: 20 },
+  ARCHMAGE: { hp: 90, atk: 35 },
+  NINJA: { hp: 100, atk: 28 },
+  PALADIN: { hp: 130, atk: 22 }
+};
+
+// AUDIO SYNTHESIZER ENGINE (BGM & FX)
+const AudioFX = {
+  ctx: null,
+  bgmNode: null,
+  isBgmPlaying: false,
+  init() {
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    try { if (this.ctx.state === "suspended") this.ctx.resume(); } catch (e) {}
+  },
+  playHit() {
+    try {
+      this.init();
+      let osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+      osc.type = "sawtooth"; osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.15);
+      g.gain.setValueAtTime(0.3, this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+      osc.connect(g); g.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.15);
+    } catch(e) {}
+  },
+  playVictory() {
+    try {
+      this.init();
+      [261, 329, 392, 523, 659].forEach((freq, i) => {
+        let osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.1);
+        g.gain.setValueAtTime(0.2, this.ctx.currentTime + i * 0.1);
+        g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.1 + 0.25);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(this.ctx.currentTime + i * 0.1); osc.stop(this.ctx.currentTime + i * 0.1 + 0.25);
+      });
+    } catch(e) {}
+  },
+  toggleFocusBGM() {
+    this.init();
+    if (this.isBgmPlaying) {
+      if (this.bgmNode) { this.bgmNode.stop(); this.bgmNode = null; }
+      this.isBgmPlaying = false;
+      return false;
+    } else {
+      let osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+      osc.type = "sine"; osc.frequency.setValueAtTime(110, this.ctx.currentTime);
+      g.gain.setValueAtTime(0.05, this.ctx.currentTime);
+      osc.connect(g); g.connect(this.ctx.destination);
+      osc.start(); this.bgmNode = osc; this.isBgmPlaying = true;
+      return true;
+    }
+  }
+};
+
+function toggleAudioBGM() {
+  const isPlaying = AudioFX.toggleFocusBGM();
+  const btn = document.getElementById("bgmBtn");
+  if (isPlaying) {
+    btn.classList.add("bg-purple-600", "glow-cyan");
+    btn.innerHTML = "🎶 <span>กำลังเล่น BGM</span>";
+  } else {
+    btn.classList.remove("bg-purple-600", "glow-cyan");
+    btn.innerHTML = "🎵 <span>เพลงสมาธิ</span>";
+  }
+}
+
+// --- LOGGING FUNCTIONS ---
+function addActivityLog(activityName, duration = "-", status = "SUCCESS") {
+  if (!currentUser) return;
+  if (!currentUser.logs) currentUser.logs = [];
+
+  const newLog = {
+    id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+    timestamp: new Date().toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }),
+    activityName, duration, status
+  };
+
+  currentUser.logs.unshift(newLog);
+  if (currentUser.logs.length > 500) currentUser.logs.length = 500; // keep storage small
+  saveDB();
+  renderHistoryLogUI();
+}
+
+function deleteLogById(logId) {
+  if (!currentUser || !currentUser.logs) return;
+  currentUser.logs = currentUser.logs.filter(l => l.id !== logId);
+  saveDB();
+  renderHistoryLogUI();
+}
+
+function handleClearAllLogs() {
+  if (!currentUser) return;
+  if (confirm("คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติการทำกิจกรรมทั้งหมด?")) {
+    currentUser.logs = [];
+    saveDB();
+    renderHistoryLogUI();
+  }
+}
+
+// --- AUTH & GAME CORE ---
+function authDive(next) {
+  const a = document.getElementById("authScreen");
+  if (!a || ui.lite || CALM || !a.classList.contains("auth3d")) return next();
+  a.classList.add("diving"); setTimeout(next, 520);
+}
+function handleLogin() {
+  const u = document.getElementById("usernameInput").value.trim();
+  const p = document.getElementById("passwordInput").value.trim();
+  if (!u || !p) return alert("กรุณากรอกชื่อและรหัสผ่าน");
+
+  if (!hasUser(u) || !verifyPassword(usersDB[u], p)) {
+    return alert("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+  }
+
+  currentUser = usersDB[u];
+  saveDB(); // persists the password-hash upgrade for legacy saves
+  initUserDefaultFields();
+  authDive(initGameSession);
+}
+
+function handleRegister() {
+  const u = document.getElementById("usernameInput").value.trim();
+  const p = document.getElementById("passwordInput").value.trim();
+  const cls = document.getElementById("classSelect").value;
+
+  if (!u || !p) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+  if (u === "__proto__") return alert("ชื่อนี้ไม่สามารถใช้งานได้");
+  if (u.length > 24) return alert("ชื่อฮีโร่ยาวเกินไป (ไม่เกิน 24 ตัวอักษร)");
+  if (p.length < 6) return alert("รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร");
+  if (hasUser(u)) return alert("ชื่อผู้ใช้นี้ถูกใช้งานแล้ว");
+
+  const preset = CLASS_PRESETS[cls];
+  const stage1 = BOSS_STAGES[0];
+  const salt = newSalt();
+
+  usersDB[u] = {
+    username: u, salt: salt, passHash: hashPassword(p, salt), heroClass: cls,
+    level: 1, exp: 0, gold: 100, tickets: 1, streak: 0, charges: 1,
+    maxHp: preset.hp, hp: preset.hp, baseAtk: preset.atk,
+    title: "ผู้เริ่มต้นแห่งอาณาจักร", pet: "Magi-Cat",
+    quests: getRandomQuests(3), inventory: [], logs: [],
+    schedule: cloneSchedule(),
+    bossStage: 1, bossHp: stage1.hp, maxBossHp: stage1.hp,
+    equipped: { WEAPON: null, ACCESSORY: null },
+    stats: { focusCount: 0, totalBossDmg: 0, gachaPulls: 0, questCount: 0, journalCount: 0 },
+    achievements: {}, dailyCheckin: { lastDate: "", dayStreak: 1 },
+    journal: [], catHistory: {}, daily: { date: "", rewarded: 0, journal: false }
+  };
+
+  saveDB();
+  currentUser = usersDB[u];
+  initUserDefaultFields();
+  authDive(initGameSession);
+}
+
+function initUserDefaultFields() {
+  if (!currentUser.logs) currentUser.logs = [];
+  if (!currentUser.schedule) currentUser.schedule = cloneSchedule();
+  if (!currentUser.equipped) currentUser.equipped = { WEAPON: null, ACCESSORY: null };
+  if (!currentUser.tickets) currentUser.tickets = 0;
+  if (!currentUser.bossStage) currentUser.bossStage = 1;
+  if (!currentUser.stats) currentUser.stats = { focusCount: 0, totalBossDmg: 0, gachaPulls: 0, questCount: 0 };
+  if (!currentUser.achievements) currentUser.achievements = {};
+  if (!currentUser.dailyCheckin) currentUser.dailyCheckin = { lastDate: "", dayStreak: 1 };
+  if (typeof currentUser.charges !== "number" || currentUser.charges < 0) currentUser.charges = 0;
+  if (!Array.isArray(currentUser.goals)) currentUser.goals = [];
+  if (!currentUser.settings || typeof currentUser.settings !== "object") currentUser.settings = { reminders: true };
+  if (!Array.isArray(currentUser.scheduleTemplate)) currentUser.scheduleTemplate = DEFAULT_SCHEDULE.map(t => ({ id: t.id, time: t.time, task: t.task }));
+  // migrate untouched old (8-hour) default schedule to the new short one, keeping today's progress
+  const schKey = a => JSON.stringify(a.map(t => [t.id, t.time, t.task]));
+  if (schKey(currentUser.scheduleTemplate) === LEGACY_SCHEDULE_KEY) {
+    currentUser.scheduleTemplate = DEFAULT_SCHEDULE.map(t => ({ id: t.id, time: t.time, task: t.task }));
+    if (Array.isArray(currentUser.schedule) && schKey(currentUser.schedule) === LEGACY_SCHEDULE_KEY) {
+      const prev = currentUser.schedule;
+      currentUser.schedule = cloneSchedule().map(t => ({ ...t, status: (prev.find(o => o.id === t.id) || {}).status || "PENDING" }));
+    }
+  }
+  if (!Array.isArray(currentUser.journal)) currentUser.journal = [];
+  if (!currentUser.catHistory || typeof currentUser.catHistory !== "object") currentUser.catHistory = {};
+  if (!currentUser.daily || typeof currentUser.daily !== "object") currentUser.daily = { date: "", rewarded: 0, journal: false };
+  if (currentUser.stats.journalCount === undefined) currentUser.stats.journalCount = 0;
+  currentUser.quests.forEach(q => {
+    if (!q.cat) q.cat = "life";
+    if (q.custom === undefined) q.custom = ["🟢", "🟡", "🔴"].includes(q.icon); // old custom quests used these icons
+  });
+
+  // Timer does not survive a reload, so tasks left "in progress" go back to pending
+  currentUser.schedule.forEach(t => { if (t.status === "IN_PROGRESS") t.status = "PENDING"; });
+
+  // Ensure Boss HP is valid (keeps scaled endgame boss HP intact)
+  const currentStageDef = BOSS_STAGES.find(s => s.stage === currentUser.bossStage) || BOSS_STAGES[0];
+  if (!currentUser.maxBossHp) currentUser.maxBossHp = currentStageDef.hp;
+  if (currentUser.bossHp === undefined || currentUser.bossHp === null || currentUser.bossHp <= 0) currentUser.bossHp = currentUser.maxBossHp;
+  if (currentUser.bossHp > currentUser.maxBossHp) currentUser.bossHp = currentUser.maxBossHp;
+}
+
+function saveDB() {
+  if (currentUser) usersDB[currentUser.username] = currentUser;
+  try { localStorage.setItem(DB_KEY, JSON.stringify(usersDB)); } catch (e) { console.warn("saveDB failed", e);
+    if (Date.now() - (window._sw || 0) > 30000) { window._sw = Date.now(); showToast("⚠️ บันทึกข้อมูลลงเบราว์เซอร์ไม่สำเร็จ (พื้นที่เต็มหรือถูกบล็อก) กด 💾 เซฟเพื่อสำรองไฟล์ทันที"); } }
+}
+
+function logout() {
+  stopReminders();
+  stopTimerAndReset();
+  saveDB();
+  currentUser = null;
+  document.getElementById("mainGame").classList.add("hidden");
+  document.getElementById("authScreen").classList.remove("hidden");
+  startAuth3D();
+}
+
+function initGameSession() {
+  document.getElementById("authScreen").classList.add("hidden");
+  document.getElementById("authScreen").classList.remove("diving");
+  document.getElementById("mainGame").classList.remove("hidden");
+  
+  processDailyLoginCheck();
+  renderAll();
+  startCanvasLoop();
+  startReminders();
+  checkBackupReminder();
+  if (!currentUser.seenTutorial) setTimeout(() => showTutorial(), 700);
+}
+
+function exportUserData() {
+  currentUser.lastBackup = Date.now();
+  saveDB();
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentUser));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", `Aetheria_Save_${currentUser.username}.json`);
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+  renderSettings();
+}
+
+function triggerImportSave() { document.getElementById("importFileInput").click(); }
+
+function normalizeSave(d) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
+  if (typeof d.username !== "string" || !d.username.trim() || d.username.trim() === "__proto__") return null;
+  d.username = d.username.trim();
+  const num = (v, def) => Number.isFinite(Number(v)) ? Number(v) : def;
+  d.heroClass = CLASS_PRESETS[d.heroClass] ? d.heroClass : "WARRIOR";
+  const preset = CLASS_PRESETS[d.heroClass];
+  d.level = Math.max(1, Math.floor(num(d.level, 1)));
+  d.exp = Math.max(0, num(d.exp, 0));
+  d.gold = Math.max(0, num(d.gold, 0));
+  d.tickets = Math.max(0, num(d.tickets, 0));
+  d.streak = Math.max(0, Math.floor(num(d.streak, 0)));
+  d.maxHp = Math.max(1, num(d.maxHp, preset.hp));
+  d.hp = Math.min(d.maxHp, Math.max(0, num(d.hp, d.maxHp)));
+  d.baseAtk = num(d.baseAtk, preset.atk);
+  if (typeof d.title !== "string") d.title = "ผู้เริ่มต้นแห่งอาณาจักร";
+  if (typeof d.pet !== "string") d.pet = "Magi-Cat";
+  d.bossStage = Math.max(1, Math.floor(num(d.bossStage, 1)));
+  d.quests = (Array.isArray(d.quests) ? d.quests : []).filter(q => q && typeof q === "object").map((q, i) => ({
+    id: Number.isFinite(Number(q.id)) ? Number(q.id) : Date.now() + i,
+    title: String(q.title ?? "ภารกิจ"), icon: String(q.icon ?? "⭐"),
+    diff: ["EASY", "NORMAL", "HARD"].includes(q.diff) ? q.diff : "NORMAL", done: !!q.done,
+    cat: CATEGORIES[q.cat] ? q.cat : "life",
+    custom: q.custom === undefined ? ["🟢", "🟡", "🔴"].includes(q.icon) : !!q.custom
+  }));
+  d.quests = uniquifyQuestIds(d.quests);
+  d.inventory = (Array.isArray(d.inventory) ? d.inventory : []).filter(i => i && typeof i === "object").map((i, idx) => ({
+    ...i, id: String(i.id ?? `imp_${idx}`), name: String(i.name ?? "?"), icon: String(i.icon ?? "❓"),
+    type: String(i.type ?? "MISC"), desc: String(i.desc ?? "")
+  }));
+  d.logs = (Array.isArray(d.logs) ? d.logs : []).filter(l => l && typeof l === "object").map((l, idx) => ({
+    id: String(l.id ?? `imp_log_${idx}`), timestamp: String(l.timestamp ?? ""), activityName: String(l.activityName ?? ""),
+    duration: String(l.duration ?? "-"), status: l.status === "SUCCESS" ? "SUCCESS" : "FAILED"
+  }));
+  const validItem = it => it && typeof it === "object" ? it : null;
+  const eq = d.equipped && typeof d.equipped === "object" ? d.equipped : {};
+  d.equipped = { WEAPON: validItem(eq.WEAPON), ACCESSORY: validItem(eq.ACCESSORY) };
+  const sch = (Array.isArray(d.schedule) ? d.schedule : []).filter(t => t && typeof t === "object" && Number.isFinite(Number(t.id)));
+  d.schedule = sch.length ? sch.map(t => ({
+    id: Number(t.id), time: String(t.time ?? ""), task: String(t.task ?? ""),
+    status: ["PENDING", "COMPLETED"].includes(t.status) ? t.status : "PENDING"
+  })) : cloneSchedule();
+  if (!d.stats || typeof d.stats !== "object") d.stats = {};
+  if (!d.achievements || typeof d.achievements !== "object") d.achievements = {};
+  if (!d.dailyCheckin || typeof d.dailyCheckin !== "object") d.dailyCheckin = { lastDate: "", dayStreak: 1 };
+  const stageDef = BOSS_STAGES.find(s => s.stage === d.bossStage) || BOSS_STAGES[0];
+  d.maxBossHp = Math.max(1, num(d.maxBossHp, stageDef.hp));
+  d.bossHp = Math.min(d.maxBossHp, Math.max(0, num(d.bossHp, d.maxBossHp)));
+  if (d.bossHp <= 0) d.bossHp = d.maxBossHp;
+  d.charges = Math.max(0, Math.floor(num(d.charges, 0)));
+  d.journal = (Array.isArray(d.journal) ? d.journal : []).filter(j => j && typeof j === "object").slice(0, 100).map(j => ({
+    date: String(j.date ?? ""), ts: num(j.ts, 0), prompt: String(j.prompt ?? ""), text: String(j.text ?? "").slice(0, 500)
+  }));
+  const ch = {};
+  if (d.catHistory && typeof d.catHistory === "object") {
+    Object.entries(d.catHistory).forEach(([k, v]) => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(k) && v && typeof v === "object") {
+        ch[k] = {};
+        Object.keys(CATEGORIES).forEach(c => { if (Number.isFinite(Number(v[c]))) ch[k][c] = Number(v[c]); });
+      }
+    });
+  }
+  d.catHistory = ch;
+  d.daily = d.daily && typeof d.daily === "object" ? { date: String(d.daily.date ?? ""), rewarded: Math.max(0, num(d.daily.rewarded, 0)), journal: !!d.daily.journal } : { date: "", rewarded: 0, journal: false };
+  if (!d.dailyCheckin || typeof d.dailyCheckin !== "object") d.dailyCheckin = { lastDate: "", dayStreak: 1 };
+  d.dailyCheckin = { lastDate: String(d.dailyCheckin.lastDate ?? ""), dayStreak: Math.min(7, Math.max(1, Math.floor(num(d.dailyCheckin.dayStreak, 1)))) };
+  const isKey = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s));
+  d.goals = (Array.isArray(d.goals) ? d.goals : []).filter(g => g && typeof g === "object").slice(0, 10).map((g, i) => ({
+    id: i + 1, title: String(g.title ?? "เป้าหมาย").slice(0, 80), cat: CATEGORIES[g.cat] ? g.cat : "life",
+    due: isKey(g.due) ? g.due : "", done: !!g.done,
+    steps: (Array.isArray(g.steps) ? g.steps : []).filter(s => s && typeof s === "object").slice(0, 15)
+      .map((s, j) => ({ id: j + 1, text: String(s.text ?? "").slice(0, 80), done: !!s.done, at: isKey(s.at) ? s.at : "" }))
+  }));
+  d.scheduleTemplate = Array.isArray(d.scheduleTemplate)
+    ? d.scheduleTemplate.filter(t => t && typeof t === "object" && Number.isFinite(Number(t.id))).slice(0, 20)
+        .map(t => ({ id: Number(t.id), time: String(t.time ?? ""), task: String(t.task ?? "") })) : null;
+  d.settings = { reminders: !(d.settings && d.settings.reminders === false) };
+  d.lastBackup = num(d.lastBackup, 0) || 0;
+  return d;
+}
+
+function importUserData(event) {
+  const input = event.target;
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = normalizeSave(JSON.parse(e.target.result));
+      if (!imported) throw new Error("invalid");
+      if (!ensurePasswordFields(imported)) return alert("ไฟล์เซฟไม่สมบูรณ์ (ไม่มีรหัสผ่าน)");
+      if (Object.prototype.hasOwnProperty.call(usersDB, imported.username) &&
+          !confirm(`มีฮีโร่ชื่อ "${imported.username}" อยู่แล้ว ต้องการเขียนทับด้วยไฟล์เซฟนี้หรือไม่?`)) return;
+      stopTimerAndReset();
+      usersDB[imported.username] = imported;
+      currentUser = imported;
+      initUserDefaultFields();
+      saveDB();
+      renderAll();
+      alert("📂 โหลดไฟล์เซฟข้อมูลสำเร็จเรียบร้อย!");
+    } catch (err) { alert("ไฟล์เซฟไม่ถูกต้อง"); }
+    finally { input.value = ""; }
+  };
+  reader.readAsText(file);
+}
+
+// DAILY CHECKIN & AUTO QUEST REFRESH
+function processDailyLoginCheck() {
+  const today = todayKey();
+  const checkin = currentUser.dailyCheckin;
+  const last = normDateKey(checkin.lastDate);
+  if (last === today) { ensureDaily(); return; }
+
+  const gap = last ? dayDiff(last, today) : null;
+  if (gap !== null && gap < 0) { // device clock went backwards: no rewards
+    checkin.lastDate = today; ensureDaily(); saveDB(); return;
+  }
+
+  const notes = [];
+
+  // 1) real consecutive-day streak
+  if (gap === 1) {
+    currentUser.streak = (currentUser.streak || 0) + 1;
+  } else {
+    if (gap !== null && (currentUser.streak || 0) > 1) {
+      notes.push(`🔥 สตรีค ${currentUser.streak} วันขาดช่วง เริ่มนับใหม่จากวันนี้ — ไม่เป็นไร การเริ่มใหม่คือส่วนหนึ่งของการพัฒนา`);
+    }
+    currentUser.streak = 1;
+  }
+  checkin.lastDate = today;
+  checkin.dayStreak = ((currentUser.streak - 1) % 7) + 1;
+
+  // 2) unfinished quests from the previous session cost some HP; a night's rest restores some
+  const missedQuests = last ? currentUser.quests.filter(q => !q.done) : [];
+  const regen = Math.ceil(currentUser.maxHp * 0.25);
+  currentUser.hp = Math.min(currentUser.maxHp, currentUser.hp + regen);
+  if (missedQuests.length > 0) {
+    const loss = Math.min(Math.floor(currentUser.maxHp * 0.3), missedQuests.length * 4);
+    currentUser.hp = Math.max(1, currentUser.hp - loss);
+    missedQuests.forEach(q => addActivityLog(`พลาดภารกิจเมื่อวาน: ${q.title}`, "-", "FAILED"));
+    notes.push(`⚠️ เมื่อวานทำภารกิจไม่ครบ ${missedQuests.length} ข้อ พลังใจลดลง ${loss} — วันนี้เริ่มใหม่ได้เลย`);
+  }
+
+  // 3) fresh day: your own quests stay (unchecked again), plus 3 new suggestions from different categories
+  const keptCustom = currentUser.quests.filter(q => q.custom).map(q => ({ ...q, done: false }));
+  currentUser.quests = uniquifyQuestIds([...keptCustom, ...getRandomQuests(3)]);
+  currentUser.schedule = cloneSchedule();
+  currentUser.daily = { date: today, rewarded: 0, journal: false };
+
+  // 4) daily reward (day 7 of the cycle also gives a free ticket, as the banner promises)
+  currentUser.gold += 30;
+  currentUser.exp += 20;
+  currentUser.charges = (currentUser.charges || 0) + 1;
+  let rewardText = "30 Gold + 20 EXP + ⚡1";
+  if (checkin.dayStreak === 7) {
+    currentUser.tickets = (currentUser.tickets || 0) + 1;
+    rewardText += " + 🎟️ ตั๋วกาชา 1 ใบ";
+  }
+  addActivityLog(`เช็กอินประจำวัน (สตรีค ${currentUser.streak} วัน) รับ ${rewardText}`, "-", "SUCCESS");
+  checkLevelUp();
+  saveDB();
+  notes.unshift(`✅ เช็กอินวันที่ ${checkin.dayStreak} สำเร็จ! รับ ${rewardText}`);
+  alert(notes.join("\n\n"));
+}
+
+function renderDailyLoginBanner() {
+  const container = document.getElementById("loginDaysContainer");
+  const currentStreak = currentUser.dailyCheckin.dayStreak || 1; // today's day in the 7-day cycle (logging in claims it)
+
+  container.innerHTML = [1, 2, 3, 4, 5, 6, 7].map(day => {
+    const claimed = day <= currentStreak, today = day === currentStreak;
+    return `
+    <div class="glass relative px-3 py-1.5 rounded-xl text-center ${today ? 'border-amber-400 bg-amber-900/30' : claimed ? 'border-emerald-500/50' : 'border-purple-500/20 opacity-50'}">
+      ${claimed ? `<div class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-black flex items-center justify-center shadow-lg ${today ? 'tick-pop' : ''}">✓</div>` : ''}
+      <div class="text-[9px] text-purple-300 font-bold">วันที่ ${day}</div>
+      <div class="text-xs font-bold text-amber-300">${day === 7 ? '🎟️ ตั๋วฟรี + 30 💰' : '+30 💰'}</div>
+      ${today ? '<div class="text-[9px] text-emerald-300 font-bold">เช็กอินแล้ววันนี้</div>' : ''}
+    </div>`;
+  }).join("");
+}
+
+// EQUIPMENT & PERKS CALCULATOR
+function getActivePerks() {
+  let speedMult = 1.0, expMult = 1.0, goldMult = 1.0, bonusAtk = 0;
+
+  ['WEAPON', 'ACCESSORY'].forEach(slot => {
+    const item = currentUser.equipped[slot];
+    if (item) {
+      if (item.speedMult) speedMult *= item.speedMult;
+      if (item.expMult) expMult *= item.expMult;
+      if (item.goldMult) goldMult *= item.goldMult;
+      if (item.bonusAtk) bonusAtk += item.bonusAtk;
+    }
+  });
+
+  return { speedMult, expMult, goldMult, bonusAtk };
+}
+
+function equipItem(itemId) {
+  const item = currentUser.inventory.find(i => i.id === itemId);
+  if (!item || (item.type !== 'WEAPON' && item.type !== 'ACCESSORY')) return;
+
+  currentUser.equipped[item.type] = item;
+  saveDB();
+  renderAll();
+  addActivityLog(`สวมใส่อุปกรณ์: ${item.name}`, "-", "SUCCESS");
+}
+
+function unequipItem(slot) {
+  if (currentUser.equipped[slot]) {
+    const item = currentUser.equipped[slot];
+    currentUser.equipped[slot] = null;
+    saveDB();
+    renderAll();
+    addActivityLog(`ถอดอุปกรณ์: ${item.name}`, "-", "SUCCESS");
+  }
+}
+
+// QUESTS & ACTIONS
+function getRandomQuests(count) {
+  const cats = Object.keys(CATEGORIES).sort(() => 0.5 - Math.random()).slice(0, count);
+  return cats.map((cat, idx) => {
+    const pool = QUEST_POOL.filter(q => q.cat === cat);
+    const q = pool[Math.floor(Math.random() * pool.length)];
+    return { id: Date.now() + idx, title: q.title, diff: q.diff, icon: q.icon, cat: cat, custom: false, done: false };
+  });
+}
+
+function addCustomQuest() {
+  const rawT = document.getElementById("newQuestTitle").value.trim(), t = rawT.slice(0, 80);
+  if (rawT.length > 80) showToast("✂️ ชื่อภารกิจยาวเกิน 80 ตัวอักษร ระบบตัดให้เหลือ 80 ตัว");
+  const d = document.getElementById("newQuestDiff").value;
+  const catEl = document.getElementById("newQuestCat");
+  const cat = catEl && CATEGORIES[catEl.value] ? catEl.value : "life";
+  if (!t) return alert("กรุณากรอกชื่อภารกิจ");
+  if (currentUser.quests.filter(q => q.custom).length >= 12) return alert("มีภารกิจส่วนตัวครบ 12 ข้อแล้ว ลองลบข้อที่ไม่ใช้ก่อนนะ");
+
+  currentUser.quests.push({ id: nextQuestId(), title: t, diff: d, icon: CATEGORIES[cat].icon, cat: cat, custom: true, done: false });
+  document.getElementById("newQuestTitle").value = "";
+  saveDB();
+  renderQuests();
+}
+
+function deleteQuest(id) {
+  const q = currentUser.quests.find(x => x.id === id);
+  if (!q || !q.custom) return;
+  if (!confirm(`ลบภารกิจ "${q.title}" ออกจากรายการประจำวัน?`)) return;
+  currentUser.quests = currentUser.quests.filter(x => x.id !== id);
+  saveDB();
+  renderQuests();
+}
+
+function completeQuest(id) {
+  const q = currentUser.quests.find(x => x.id === id);
+  if (!q || q.done) return;
+
+  const daily = ensureDaily();
+  q.done = true;
+  AudioFX.playHit();
+
+  if (daily.rewarded >= DAILY_REWARD_CAP) {
+    addActivityLog(`ทำภารกิจสำเร็จ (เกินโควตารางวัลวันนี้): ${q.title}`, "ทันที", "SUCCESS");
+    saveDB();
+    renderAll();
+    alert(`✅ เยี่ยมมาก! แต่วันนี้คุณรับรางวัลครบ ${DAILY_REWARD_CAP} ภารกิจแล้ว ภารกิจนี้จึงไม่ได้ EXP/Gold เพิ่ม\nการพักผ่อนก็เป็นส่วนหนึ่งของการพัฒนาตัวเอง 🌙`);
+    return;
+  }
+  daily.rewarded += 1;
+
+  const perks = getActivePerks();
+  let expGain = Math.floor((q.diff === "EASY" ? 20 : q.diff === "NORMAL" ? 40 : 70) * perks.expMult);
+  let goldGain = Math.floor((q.diff === "EASY" ? 10 : q.diff === "NORMAL" ? 25 : 50) * perks.goldMult);
+  const chargeGain = CHARGES_BY_DIFF[q.diff] || 1;
+
+  if (Math.random() < 0.15) {
+    expGain *= 2; goldGain *= 2;
+    alert("⚡ CRITICAL HIT! ได้รับรางวัลภารกิจ x2!");
+  }
+
+  currentUser.exp += expGain;
+  currentUser.gold += goldGain;
+  currentUser.charges = (currentUser.charges || 0) + chargeGain;
+  currentUser.stats.questCount = (currentUser.stats.questCount || 0) + 1;
+  recordCategory(q.cat || "life");
+
+  document.getElementById("battleLog").innerText = `ทำภารกิจจริงสำเร็จ! ได้รับ ⚡+${chargeGain} พลังโจมตี — กดปล่อยใส่บอสได้เลย`;
+  addActivityLog(`ทำภารกิจสำเร็จ: ${q.title}`, "ทันที", "SUCCESS");
+  checkAchievements();
+  checkLevelUp();
+  saveDB();
+  renderAll();
+}
+
+function checkLevelUp() {
+  let leveled = false;
+  while (currentUser.exp >= currentUser.level * 100) {
+    currentUser.exp -= currentUser.level * 100;
+    currentUser.level += 1;
+    currentUser.maxHp += 15;
+    currentUser.baseAtk += 5;
+    leveled = true;
+  }
+  if (leveled) {
+    currentUser.hp = currentUser.maxHp;
+    AudioFX.playVictory();
+    addActivityLog(`🎉 ฮีโร่อัปเลเวลเป็น LV.${currentUser.level}`, "-", "SUCCESS");
+    confettiBurst();
+    alert(`🎉 LEVEL UP! ฮีโร่อัปเลเวลเป็น LV.${currentUser.level}!`);
+  }
+}
+
+// BOSS BATTLE SYSTEM (FIXED BUG & STAGE PROGRESSION)
+function attackBossDirectly() {
+  if (!currentUser) return;
+  if ((currentUser.charges || 0) < 1) {
+    document.getElementById("battleLog").innerText = "⚡ ยังไม่มีพลังโจมตี — ทำภารกิจจริง จับเวลาโฟกัส หรือเขียนบันทึกสะท้อนตัวเองเพื่อรับพลังก่อน!";
+    return;
+  }
+  currentUser.charges -= 1;
+  AudioFX.playHit();
+  triggerSlashVisual();
+  const perks = getActivePerks();
+
+  const bonus = streakBonus();
+  let dmg = Math.floor((currentUser.baseAtk + perks.bonusAtk + Math.floor(Math.random() * 10)) * (1 + bonus));
+  const bonusText = bonus > 0 ? ` (🔥 สตรีค +${Math.round(bonus * 100)}%)` : "";
+  const defeated = dealDamageToBoss(dmg, `คุณปล่อยพลังที่สั่งสมจากการลงมือทำจริงใส่บอส -${dmg} HP!${bonusText}`);
+
+  addActivityLog(`ปล่อยพลังใส่บอส (-${dmg} HP)`, "⚡ 1", "SUCCESS");
+  stage3dAttack();
+  renderHeader();
+
+  if (defeated) return; // บอสตายแล้ว บอสตัวใหม่ยังไม่สวนกลับ
+
+  setTimeout(() => {
+    if (!currentUser || currentUser.bossHp <= 0) return;
+    const currentStageDef = BOSS_STAGES.find(s => s.stage === currentUser.bossStage) || BOSS_STAGES[0];
+    let bossDmg = currentStageDef.atk + Math.floor(Math.random() * 8);
+    currentUser.hp = Math.max(0, currentUser.hp - bossDmg);
+    document.getElementById("battleLog").innerText += ` 💥 บอสสวนกลับใส่คุณ -${bossDmg} HP!`;
+    battleCounter(bossDmg);
+
+    if (currentUser.hp === 0) {
+      alert("💀 พลังใจของคุณหมด! พักผ่อนสักครู่ ค่า HP ฟื้นฟูกลับมาเต็มอีกครั้ง");
+      currentUser.hp = currentUser.maxHp;
+      addActivityLog(`พลังใจหมดจากบอส ${currentStageDef.name}`, "-", "FAILED");
+    }
+    saveDB();
+    renderHeader();
+    renderBossPanel();
+  }, 800);
+}
+
+function dealDamageToBoss(dmg, logMsg) {
+  currentUser.bossHp = Math.max(0, currentUser.bossHp - dmg);
+  currentUser.stats.totalBossDmg = (currentUser.stats.totalBossDmg || 0) + dmg;
+  document.getElementById("battleLog").innerText = logMsg;
+
+  const fxShown = battleHit(dmg); // class-specific attack effects (canvas); falls back to the simple popup below
+  if (!fxShown) {
+    const dmgEl = document.getElementById("bossDmgText");
+    dmgEl.innerText = `-${dmg}`;
+    dmgEl.classList.remove("opacity-0", "-translate-y-2");
+    dmgEl.classList.add("opacity-100", "-translate-y-6");
+    setTimeout(() => {
+      dmgEl.classList.remove("opacity-100", "-translate-y-6");
+      dmgEl.classList.add("opacity-0", "-translate-y-2");
+    }, 600);
+  }
+
+  let defeated = false;
+  if (currentUser.bossHp <= 0) {
+    defeated = true;
+    AudioFX.playVictory();
+    battleVictory();
+    const curStage = currentUser.bossStage || 1;
+    const stageDef = BOSS_STAGES.find(s => s.stage === curStage) || BOSS_STAGES[0];
+
+    alert(`🏆 คุณสังหารบอส ${stageDef.name} (Stage ${curStage}) สำเร็จ!\nได้รับรางวัล ${stageDef.rewardGold} Gold!`);
+    currentUser.gold += stageDef.rewardGold;
+    addActivityLog(`🏆 ปราบบอส Stage ${curStage}: ${stageDef.name} (รับ ${stageDef.rewardGold} Gold)`, "-", "SUCCESS");
+
+    // Advance to next stage or loop final stage
+    const nextStageIdx = BOSS_STAGES.findIndex(s => s.stage === curStage) + 1;
+    if (nextStageIdx < BOSS_STAGES.length) {
+      currentUser.bossStage = BOSS_STAGES[nextStageIdx].stage;
+      currentUser.maxBossHp = BOSS_STAGES[nextStageIdx].hp;
+      currentUser.bossHp = BOSS_STAGES[nextStageIdx].hp;
+      alert(`⚠️ บอสด่านใหม่ปรากฏตัว! STAGE ${currentUser.bossStage}: ${BOSS_STAGES[nextStageIdx].name}`);
+    } else {
+      // Loop with increased HP scaling for infinite endgame play
+      currentUser.maxBossHp = Math.floor(currentUser.maxBossHp * 1.5);
+      currentUser.bossHp = currentUser.maxBossHp;
+      alert(`⚠️ บอสจุติระดับสูงสุดถัดไปปรากฏตัวแล้ว! (HP: ${currentUser.maxBossHp})`);
+    }
+  }
+
+  checkAchievements();
+  saveDB();
+  renderBossPanel();
+  return defeated;
+}
+
+function triggerSlashVisual() {
+  const fx = document.getElementById("slashFX");
+  const spr = document.getElementById("bossSprite");
+  fx.classList.remove("hidden");
+  spr.classList.add("shake", "scale-110");
+  setTimeout(() => {
+    fx.classList.add("hidden");
+    spr.classList.remove("shake", "scale-110");
+  }, 300);
+}
+
+// GACHA & SHOP SYSTEM
+function openGachaModal() { document.getElementById("gachaModal").classList.remove("hidden"); document.getElementById("gachaResult").classList.add("hidden"); }
+function closeGachaModal() { document.getElementById("gachaModal").classList.add("hidden"); }
+
+function pullGacha(currencyType = 'GOLD') {
+  if (currencyType === 'GOLD') {
+    if (currentUser.gold < 150) return alert("ทองไม่พอสำหรับการหมุนกาชา (ต้องการ 150 💰)");
+    currentUser.gold -= 150;
+  } else {
+    if (currentUser.tickets < 1) return alert("คุณไม่มีตั๋วสุ่มกาชาปอง!");
+    currentUser.tickets -= 1;
+  }
+
+  AudioFX.playVictory();
+  const rolledPreset = GACHA_ITEMS[Math.floor(Math.random() * GACHA_ITEMS.length)];
+  const rolled = { ...rolledPreset, id: `gacha_item_${Date.now()}_${Math.random().toString(36).substr(2, 3)}` };
+
+  currentUser.inventory.push(rolled);
+  currentUser.stats.gachaPulls = (currentUser.stats.gachaPulls || 0) + 1;
+
+  if (rolled.type === "TITLE") currentUser.title = rolled.titleText;
+  if (rolled.type === "PET") currentUser.pet = rolled.petName;
+
+  document.getElementById("gachaIcon").innerText = rolled.icon;
+  document.getElementById("gachaName").innerText = rolled.name;
+  document.getElementById("gachaType").innerText = rolled.type;
+  document.getElementById("gachaDesc").innerText = rolled.desc || "";
+  document.getElementById("gachaResult").classList.remove("hidden");
+
+  addActivityLog(`หมุนกาชาปองได้ไอเทม: ${rolled.name}`, currencyType === 'GOLD' ? '150 Gold' : '1 Ticket', "SUCCESS");
+  checkAchievements();
+  saveDB();
+  renderAll();
+}
+
+function openShopModal() { document.getElementById("shopModal").classList.remove("hidden"); }
+function closeShopModal() { document.getElementById("shopModal").classList.add("hidden"); }
+
+function buyShopItem(itemType, cost) {
+  if (currentUser.gold < cost) return alert("ทองไม่พอซื้อไอเทมนี้!");
+  if (itemType === 'HEAL_POTION' && currentUser.hp >= currentUser.maxHp) {
+    return alert("HP เต็มอยู่แล้ว ยังไม่จำเป็นต้องใช้ยา");
+  }
+
+  currentUser.gold -= cost;
+  if (itemType === 'TICKET') {
+    currentUser.tickets = (currentUser.tickets || 0) + 1;
+    alert("🎟️ ซื้อตั๋วกาชาปองสำเร็จ 1 ใบ!");
+  } else if (itemType === 'HEAL_POTION') {
+    currentUser.hp = currentUser.maxHp;
+    alert("🍷 ดื่ม Health Potion ฟื้นฟู HP เต็มเรียบร้อย!");
+  } else if (itemType === 'EXP_BOOST') {
+    currentUser.exp += 50;
+    alert("🧪 เปิดใช้งาน EXP Booster เพิ่ม EXP ทันที 50 Points!");
+    checkLevelUp();
+  }
+
+  addActivityLog(`ซื้อไอเทมจากร้านค้า (${itemType})`, `${cost} Gold`, "SUCCESS");
+  saveDB();
+  renderAll();
+}
+
+// ACHIEVEMENTS SYSTEM
+function openAchievementsModal() {
+  renderAchievementsUI();
+  document.getElementById("achievementsModal").classList.remove("hidden");
+}
+function closeAchievementsModal() { document.getElementById("achievementsModal").classList.add("hidden"); }
+
+function getAchValue(ach) {
+  const s = currentUser.stats || {};
+  switch (ach.reqType) {
+    case "FOCUS_COUNT": return s.focusCount || 0;
+    case "BOSS_DMG": return s.totalBossDmg || 0;
+    case "GACHA_PULLS": return s.gachaPulls || 0;
+    case "QUEST_COUNT": return s.questCount || 0;
+    case "STREAK": return currentUser.streak || 0;
+    case "JOURNAL_COUNT": return s.journalCount || 0;
+    case "BALANCE": return Object.values(weeklyCategoryTotals()).filter(n => n > 0).length;
+    default: return 0;
+  }
+}
+
+function checkAchievements() {
+  ACHIEVEMENTS_DEF.forEach(ach => {
+    if (currentUser.achievements[ach.id]) return;
+
+    const currentVal = getAchValue(ach);
+
+    if (currentVal >= ach.target) {
+      currentUser.achievements[ach.id] = true;
+      currentUser.gold += ach.rewardGold;
+      if (ach.titleReward) currentUser.title = ach.titleReward;
+      AudioFX.playVictory();
+      alert(`🏅 ปลดล็อกความสำเร็จ: [${ach.title}]! รับ ${ach.rewardGold} Gold + ฉายาพิเศษ!`);
+      addActivityLog(`ปลดล็อกความสำเร็จ: ${ach.title}`, "-", "SUCCESS");
+    }
+  });
+}
+
+function renderAchievementsUI() {
+  const container = document.getElementById("achievementsList");
+  container.innerHTML = ACHIEVEMENTS_DEF.map(ach => {
+    const isUnlocked = currentUser.achievements[ach.id];
+    const currentVal = getAchValue(ach);
+
+    return `
+      <div class="glass p-3 rounded-2xl border-purple-500/20 flex items-center justify-between ${isUnlocked ? 'border-amber-400 bg-amber-950/20' : 'opacity-70'}">
+        <div>
+          <div class="font-bold text-xs text-amber-300">${ach.title} ${isUnlocked ? '✅' : ''}</div>
+          <div class="text-[10px] text-slate-300">${ach.desc} (${Math.min(currentVal, ach.target)}/${ach.target})</div>
+          <div class="text-[9px] text-purple-300">รางวัล: +${ach.rewardGold} 💰 ${ach.titleReward ? '| ' + ach.titleReward : ''}</div>
+        </div>
+        <div class="text-xs font-bold ${isUnlocked ? 'text-emerald-400' : 'text-slate-500'}">
+          ${isUnlocked ? 'ปลดล็อกแล้ว' : 'กำลังดำเนิน'}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// SCHEDULE & FOCUS TIMER (timestamp-based, so it stays accurate in background tabs)
+let timerInterval = null, timerSecs = 1500;   // timerSecs = remaining focus seconds while idle/paused
+let timerStartedAt = 0, timerStartSecs = 0, timerSpeed = 1;
+
+function parseTaskDurationInMinutes(timeStr) {
+  try {
+    // Expected format: "08:00 - 09:00" or "09:00 - 12:00"
+    const parts = timeStr.split("-").map(s => s.trim());
+    if (parts.length === 2) {
+      const [h1, m1] = parts[0].split(":").map(Number);
+      const [h2, m2] = parts[1].split(":").map(Number);
+      let totalMins = (h2 * 60 + m2) - (h1 * 60 + m1);
+      if (isFinite(totalMins) && totalMins < 0) totalMins += 1440; // range crosses midnight (e.g. 23:50 - 00:10)
+      if (isFinite(totalMins) && totalMins > 0) return totalMins;
+    }
+  } catch(e) {}
+  return 25; // Default fall back
+}
+
+function getTimerRemaining() {
+  if (timerInterval === null) return timerSecs;
+  const elapsed = ((Date.now() - timerStartedAt) / 1000) * timerSpeed;
+  return Math.max(0, timerStartSecs - elapsed);
+}
+
+function startScheduleTask(taskId) {
+  const task = currentUser.schedule.find(t => t.id === taskId);
+  if (!task || task.status === "COMPLETED") return;
+
+  // any other task left in progress goes back to pending
+  currentUser.schedule.forEach(t => { if (t !== task && t.status === "IN_PROGRESS") t.status = "PENDING"; });
+
+  currentFocusTaskId = task.id;
+  currentFocusTaskName = task.task;
+  currentFocusTaskMinutes = parseTaskDurationInMinutes(task.time);
+  task.status = "IN_PROGRESS";
+
+  document.getElementById("activeFocusLabel").innerText = `กำลังทำ: ${task.task} (${currentFocusTaskMinutes} นาที)`;
+  saveDB();
+  renderSchedule();
+
+  resetTimerWithMinutes(currentFocusTaskMinutes);
+  toggleTimer();
+}
+
+function resetTimerWithMinutes(mins) {
+  if (timerInterval !== null) { clearInterval(timerInterval); timerInterval = null; }
+  timerSecs = mins * 60;
+  updateTimerDisplay();
+  document.getElementById("timerStartBtn").innerText = "▶ เริ่มฝึกฝน";
+}
+
+function toggleTimer() {
+  const btn = document.getElementById("timerStartBtn");
+
+  if (timerInterval !== null) {
+    timerSecs = Math.ceil(getTimerRemaining());
+    clearInterval(timerInterval);
+    timerInterval = null;
+    btn.innerText = "▶ เริ่มฝึกฝน";
+    updateTimerDisplay();
+    return;
+  }
+
+  if (!currentUser) return;
+  if (timerSecs <= 0) resetTimerWithMinutes(currentFocusTaskMinutes);
+  timerSpeed = getActivePerks().speedMult;
+  timerStartSecs = timerSecs;
+  timerStartedAt = Date.now();
+  btn.innerText = "⏸ หยุดชั่วคราว";
+  timerInterval = setInterval(() => {
+    updateTimerDisplay();
+    if (getTimerRemaining() <= 0) finishTimer();
+  }, 250);
+}
+
+function finishTimer() {
+  if (timerInterval !== null) { clearInterval(timerInterval); timerInterval = null; }
+  if (!currentUser) return;
+
+  const taskName = currentFocusTaskName, taskMins = currentFocusTaskMinutes, taskId = currentFocusTaskId;
+  const perks = getActivePerks();
+  currentFocusTaskId = null;
+  resetTimerWithMinutes(taskMins); // timer is refilled, so it cannot be claimed again instantly
+
+  AudioFX.playVictory();
+  if (hasNotif() && Notification.permission === "granted") {
+    try { new Notification("Chronicles of Aetheria", { body: `🎉 ทำกิจกรรมสำเร็จ: ${taskName}!` }); } catch (e) {}
+  }
+
+  let expGain = Math.floor(50 * perks.expMult);
+  let goldGain = Math.floor(25 * perks.goldMult);
+
+  currentUser.exp += expGain;
+  currentUser.gold += goldGain;
+  currentUser.stats.focusCount = (currentUser.stats.focusCount || 0) + 1;
+
+  const activeTask = currentUser.schedule.find(t => t.id === taskId);
+  if (activeTask) activeTask.status = "COMPLETED";
+
+  addActivityLog(`ทำกิจกรรมสำเร็จ: ${taskName}`, `${taskMins} นาที`, "SUCCESS");
+
+  const gainedCharges = Math.min(4, Math.max(1, Math.floor(taskMins / 25)));
+  currentUser.charges = (currentUser.charges || 0) + gainedCharges;
+  document.getElementById("battleLog").innerText = `โฟกัส ${taskMins} นาทีสำเร็จ! ได้รับ ⚡+${gainedCharges} พลังโจมตี`;
+
+  checkAchievements();
+  checkLevelUp();
+  saveDB();
+  renderAll();
+  alert(`🎉 ทำกิจกรรมสำเร็จ: ${taskName}! รับ ${expGain} EXP + ${goldGain} ทอง + ⚡${gainedCharges}!`);
+}
+
+function resetTimer() {
+  resetTimerWithMinutes(currentFocusTaskMinutes);
+  if (currentUser && currentFocusTaskId !== null) {
+    const t = currentUser.schedule.find(x => x.id === currentFocusTaskId);
+    if (t && t.status === "IN_PROGRESS") { t.status = "PENDING"; saveDB(); renderSchedule(); }
+  }
+}
+
+function stopTimerAndReset() {
+  if (timerInterval !== null) { clearInterval(timerInterval); timerInterval = null; }
+  if (currentUser && currentUser.schedule) {
+    currentUser.schedule.forEach(t => { if (t.status === "IN_PROGRESS") t.status = "PENDING"; });
+  }
+  currentFocusTaskId = null;
+  currentFocusTaskName = DEFAULT_FOCUS_NAME;
+  currentFocusTaskMinutes = 25;
+  resetTimerWithMinutes(25);
+  const lbl = document.getElementById("activeFocusLabel");
+  if (lbl) lbl.innerText = `กำลังทำ: ${DEFAULT_FOCUS_NAME}`;
+}
+
+function updateTimerDisplay() {
+  const total = Math.ceil(getTimerRemaining());
+  let m = Math.floor(total / 60), s = total % 60;
+  document.getElementById("timerDisplay").innerText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// VISUAL POLISH: themes, parallax, tilt, confetti
+const UI_KEY = "aetheria_ui";
+let ui = { theme: "dark", lite: false };
+try {
+  const saved = localStorage.getItem(UI_KEY);
+  if (saved) Object.assign(ui, JSON.parse(saved));
+} catch (e) {}
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches); // calmer 3D motion, but 3D stays on
+function saveUI() { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) {} }
+function applyUI() {
+  const root = document.documentElement;
+  if (root && root.classList) { root.classList.toggle("light", ui.theme === "light"); root.classList.toggle("lite", !!ui.lite); }
+  const t = document.getElementById("themeBtn"), l = document.getElementById("liteBtn");
+  if (t) t.innerText = ui.theme === "light" ? "☀️ ธีม" : "🌙 ธีม";
+  if (l) l.innerText = ui.lite ? "🍃 ประหยัดแรง: เปิด" : "🍃 ประหยัดแรง";
+  if (currentUser) sync3D();
+}
+function toggleTheme() { ui.theme = ui.theme === "light" ? "dark" : "light"; saveUI(); applyUI(); }
+function toggleLite() { ui.lite = !ui.lite; saveUI(); applyUI(); showToast(ui.lite ? "🍃 โหมดประหยัดแรง: ปิดแอนิเมชันหนักๆ แล้ว" : "✨ เปิดแอนิเมชันเต็มรูปแบบ"); }
+function setParallax(x, y) {
+  const root = document.documentElement;
+  if (root && root.style && !ui.lite) { root.style.setProperty("--mx", x.toFixed(3)); root.style.setProperty("--my", y.toFixed(3)); }
+}
+let tiltCard = null;
+function resetTilt(c) { if (c && c.style) { c.style.setProperty("--rx", "0deg"); c.style.setProperty("--ry", "0deg"); } }
+document.addEventListener("mousemove", e => {
+  if (ui.lite) return;
+  setParallax(e.clientX / (window.innerWidth || 1) - 0.5, e.clientY / (window.innerHeight || 1) - 0.5);
+  const card = e.target && e.target.closest ? e.target.closest(".glass.rounded-3xl") : null;
+  if (tiltCard && tiltCard !== card) resetTilt(tiltCard);
+  tiltCard = card;
+  if (!card) return;
+  const r = card.getBoundingClientRect();
+  card.style.setProperty("--ry", (((e.clientX - r.left) / r.width - 0.5) * 4).toFixed(2) + "deg");
+  card.style.setProperty("--rx", ((-((e.clientY - r.top) / r.height - 0.5)) * 4).toFixed(2) + "deg");
+});
+window.addEventListener("deviceorientation", e => {
+  if (e.gamma == null || e.beta == null) return;
+  setParallax(Math.max(-0.5, Math.min(0.5, e.gamma / 60)), Math.max(-0.5, Math.min(0.5, (e.beta - 45) / 90)));
+});
+function confettiBurst() {
+  if (ui.lite) return;
+  const W = window.innerWidth || 800, H = window.innerHeight || 600;
+  const c = document.createElement("canvas");
+  c.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:90";
+  c.width = W; c.height = H; document.body.appendChild(c);
+  const g = c.getContext("2d"), cols = ["#f59e0b", "#a855f7", "#22d3ee", "#34d399", "#f43f5e"];
+  const ps = Array.from({ length: 90 }, () => ({ x: W / 2, y: H * 0.35, vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 13 - 4,
+    s: 4 + Math.random() * 5, c: cols[(Math.random() * cols.length) | 0], r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4 }));
+  let f = 0;
+  (function loop() {
+    g.clearRect(0, 0, W, H);
+    ps.forEach(p => { p.vy += 0.35; p.x += p.vx; p.y += p.vy; p.r += p.vr; g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c; g.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); g.restore(); });
+    if (++f < 110) requestAnimationFrame(loop); else c.remove();
+  })();
+}
+applyUI();
+
+// 3D STAGE (Three.js, low-poly). Falls back to the 2D canvas if Three.js/WebGL is unavailable or low-power mode is on.
+const S3 = { on: false, failed: false, hero: null, boss: null, raf: 0, key: {} };
+const CLS3D = { WARRIOR: [0xb91c1c, 0xfacc15], ARCHMAGE: [0x6d28d9, 0x22d3ee], NINJA: [0x1f2937, 0xef4444], PALADIN: [0xe5e7eb, 0xfbbf24] };
+const BOSS3D = [null, { c: 0x4ade80, s: 1.0, horns: 0, ears: 1 }, { c: 0xa855f7, s: 1.1, horns: 2 }, { c: 0xf97316, s: 1.2, horns: 2, spikes: 1, wings: 1 },
+  { c: 0x38bdf8, s: 1.3, horns: 4, wings: 1 }, { c: 0xef4444, s: 1.5, horns: 4, spikes: 1, wings: 1, crown: 1 }];
+const threeOK = () => typeof THREE !== "undefined" && !S3.failed;
+function m3(c, em) { return new THREE.MeshStandardMaterial({ color: c, flatShading: true, roughness: 0.65, metalness: 0.1, emissive: em || 0x000000 }); }
+function p3(geo, mat, x, y, z) { const o = new THREE.Mesh(geo, mat); o.position.set(x || 0, y || 0, z || 0); return o; }
+
+function buildHero3D(cls) {
+  const [bc, tc] = CLS3D[cls] || CLS3D.WARRIOR, g = new THREE.Group();
+  const body = m3(bc), trim = m3(tc), skin = m3(0xfcd5b0), dark = m3(0x111827), steel = m3(0xcbd5e1), hair = m3(cls === "NINJA" ? 0x0f172a : 0x7c2d12);
+  g.add(p3(new THREE.CylinderGeometry(0.4, 0.52, 1.05, 7), body, 0, 1.0, 0));
+  g.add(p3(new THREE.CylinderGeometry(0.44, 0.44, 0.13, 7), trim, 0, 0.6, 0));
+  g.add(p3(new THREE.SphereGeometry(0.2, 6, 5), trim, -0.55, 1.5, 0)); g.add(p3(new THREE.SphereGeometry(0.2, 6, 5), trim, 0.55, 1.5, 0));
+  g.add(p3(new THREE.SphereGeometry(0.36, 9, 7), skin, 0, 1.8, 0));
+  g.add(p3(new THREE.SphereGeometry(0.385, 9, 7, 0, Math.PI * 2, 0, Math.PI / 2), hair, 0, 1.85, -0.02));
+  g.add(p3(new THREE.SphereGeometry(0.055, 6, 4), dark, -0.13, 1.82, 0.32)); g.add(p3(new THREE.SphereGeometry(0.055, 6, 4), dark, 0.13, 1.82, 0.32));
+  [-0.2, 0.2].forEach(x => { g.add(p3(new THREE.BoxGeometry(0.28, 0.7, 0.3), body, x, 0.28, 0)); g.add(p3(new THREE.BoxGeometry(0.32, 0.16, 0.42), dark, x, -0.04, 0.06)); });
+  const cape = p3(new THREE.BoxGeometry(0.95, 1.35, 0.06), trim, 0, 1.0, -0.42); cape.rotation.x = 0.12; g.add(cape);
+  g.add(p3(new THREE.BoxGeometry(0.22, 0.75, 0.22), body, -0.66, 1.1, 0));
+  const arm = new THREE.Group(); arm.position.set(0.66, 1.42, 0);
+  arm.add(p3(new THREE.BoxGeometry(0.22, 0.75, 0.22), body, 0, -0.3, 0)); arm.add(p3(new THREE.SphereGeometry(0.13, 6, 5), skin, 0, -0.72, 0));
+  if (cls === "ARCHMAGE") {
+    g.add(p3(new THREE.ConeGeometry(0.44, 0.85, 6), body, 0, 2.25, 0)); g.add(p3(new THREE.CylinderGeometry(0.52, 0.52, 0.07, 8), trim, 0, 1.96, 0));
+    arm.add(p3(new THREE.CylinderGeometry(0.04, 0.04, 1.8, 5), m3(0x92400e), 0, -0.4, 0.15));
+    arm.add(p3(new THREE.SphereGeometry(0.16, 8, 6), m3(tc, tc), 0, 0.55, 0.15));
+  } else if (cls === "NINJA") {
+    g.add(p3(new THREE.BoxGeometry(0.76, 0.11, 0.76), trim, 0, 1.9, 0)); g.add(p3(new THREE.BoxGeometry(0.1, 0.5, 0.05), trim, 0.1, 1.62, -0.38));
+    arm.add(p3(new THREE.BoxGeometry(0.07, 0.8, 0.02), steel, 0, -1.1, 0.12)); g.add(p3(new THREE.BoxGeometry(0.07, 0.8, 0.02), steel, -0.66, 0.5, 0.14));
+  } else {
+    if (cls === "PALADIN") { g.add(p3(new THREE.SphereGeometry(0.4, 8, 6, 0, Math.PI * 2, 0, Math.PI / 1.7), steel, 0, 1.85, 0)); g.add(p3(new THREE.BoxGeometry(0.12, 0.55, 0.05), trim, 0, 1.05, 0.54)); }
+    else g.add(p3(new THREE.ConeGeometry(0.1, 0.4, 5), trim, 0, 2.2, 0));
+    g.add(p3(new THREE.BoxGeometry(0.1, 0.9, 0.75), steel, -0.84, 1.05, 0.05)); g.add(p3(new THREE.BoxGeometry(0.12, 0.3, 0.3), trim, -0.9, 1.05, 0.05));
+    arm.add(p3(new THREE.BoxGeometry(0.11, 1.3, 0.045), steel, 0, -1.2, 0.15)); arm.add(p3(new THREE.BoxGeometry(0.45, 0.08, 0.11), trim, 0, -0.6, 0.15));
+  }
+  g.add(arm);
+  return { g, arm, color: tc };
+}
+function buildPet3D(pet) {
+  const g = new THREE.Group(), dragon = pet === "Baby Dragon", c = dragon ? 0x22c55e : 0xf9a8d4, m = m3(c), dark = m3(0x111827);
+  g.add(p3(new THREE.IcosahedronGeometry(0.34, 0), m, 0, 0, 0));
+  g.add(p3(new THREE.SphereGeometry(0.05, 5, 4), dark, -0.11, 0.09, 0.3)); g.add(p3(new THREE.SphereGeometry(0.05, 5, 4), dark, 0.11, 0.09, 0.3));
+  if (dragon) { g.add(p3(new THREE.ConeGeometry(0.24, 0.06, 3), m3(0x86efac), -0.38, 0.17, 0)); g.add(p3(new THREE.ConeGeometry(0.24, 0.06, 3), m3(0x86efac), 0.38, 0.17, 0)); g.add(p3(new THREE.ConeGeometry(0.07, 0.24, 4), m3(0xfacc15), 0, 0.38, 0.1)); }
+  else { g.add(p3(new THREE.ConeGeometry(0.1, 0.24, 4), m, -0.2, 0.34, 0)); g.add(p3(new THREE.ConeGeometry(0.1, 0.24, 4), m, 0.2, 0.34, 0)); const tail = p3(new THREE.ConeGeometry(0.06, 0.4, 4), m, 0, 0, -0.4); tail.rotation.x = -Math.PI / 2; g.add(tail); }
+  return g;
+}
+function buildBoss3D(stage) {
+  const d = BOSS3D[Math.min(5, Math.max(1, stage))], g = new THREE.Group(), mat = m3(d.c), dark = m3(0x111827), horn = m3(0xf1f5f9), gold = m3(0xfacc15, 0x6b4e00);
+  const eye = m3(0xff3b3b, 0xff1111), belly = m3(0xfef3c7), orbit = [];
+  g.add(p3(new THREE.IcosahedronGeometry(1.0, 0), mat, 0, 0.45, 0)); g.add(p3(new THREE.SphereGeometry(0.62, 8, 6), belly, 0, 0.25, 0.55));
+  g.add(p3(new THREE.SphereGeometry(0.11, 6, 5), eye, -0.36, 0.78, 0.88)); g.add(p3(new THREE.SphereGeometry(0.11, 6, 5), eye, 0.36, 0.78, 0.88));
+  g.add(p3(new THREE.BoxGeometry(0.62, 0.15, 0.08), dark, 0, 0.42, 0.97));
+  for (let i = 0; i < 4; i++) { const t = p3(new THREE.ConeGeometry(0.05, 0.15, 4), horn, -0.22 + i * 0.15, 0.33, 1.0); t.rotation.x = Math.PI; g.add(t); }
+  [-1, 1].forEach(s => {
+    const a = p3(new THREE.CylinderGeometry(0.17, 0.22, 0.95, 6), mat, s * 1.18, 0.35, 0.15); a.rotation.z = -s * 0.5; g.add(a);
+    g.add(p3(new THREE.SphereGeometry(0.26, 7, 6), mat, s * 1.42, -0.05, 0.22));
+    g.add(p3(new THREE.CylinderGeometry(0.26, 0.3, 0.65, 6), mat, s * 0.45, -0.55, 0)); g.add(p3(new THREE.BoxGeometry(0.5, 0.15, 0.7), dark, s * 0.45, -0.9, 0.12));
+  });
+  const tail = p3(new THREE.ConeGeometry(0.28, 1.1, 5), mat, 0, 0, -1.15); tail.rotation.x = -Math.PI / 2; g.add(tail);
+  for (let i = 0; i < (d.horns || 0); i++) { const a = (i / d.horns - 0.5) * 2.4; g.add(p3(new THREE.ConeGeometry(0.14, 0.6, 5), horn, Math.sin(a) * 0.75, 1.4 + Math.cos(a) * 0.05, 0)); }
+  if (d.ears) { g.add(p3(new THREE.ConeGeometry(0.22, 0.6, 4), mat, -1.0, 0.75, 0)); g.add(p3(new THREE.ConeGeometry(0.22, 0.6, 4), mat, 1.0, 0.75, 0)); }
+  if (d.spikes) for (let i = 0; i < 5; i++) g.add(p3(new THREE.ConeGeometry(0.13, 0.45, 4), dark, (i - 2) * 0.34, 0.9 + (i % 2) * 0.2, -0.85));
+  if (d.wings) [-1, 1].forEach(s => { const w = p3(new THREE.ConeGeometry(0.55, 1.4, 3), m3(0x312e81), s * 1.15, 1.2, -0.55); w.rotation.z = s * 1.0; g.add(w); });
+  if (d.crown) g.add(p3(new THREE.TorusGeometry(0.6, 0.08, 5, 10), gold, 0, 1.75, 0));
+  const n = d.crown ? 5 : d.wings ? 2 : 0;
+  for (let i = 0; i < n; i++) { const o = p3(new THREE.SphereGeometry(0.13, 6, 5), m3(0xa78bfa, 0x6d28d9), 0, 0.5, 0); g.add(o); orbit.push(o); }
+  const aura = p3(new THREE.SphereGeometry(1.9, 12, 10), new THREE.MeshBasicMaterial({ color: d.c, transparent: true, opacity: 0.11 }), 0, 0.5, 0); g.add(aura);
+  g.scale.setScalar(d.s * 0.8);
+  return { g, mat, base: d.s * 0.8, orbit, aura };
+}
+function fx3D(sc, color, n) {
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.55, 0.04, 6, 36), new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 1 }));
+  ring.rotation.x = Math.PI / 2; ring.position.y = 0.03; sc.add(ring);
+  const sparks = Array.from({ length: n }, () => { const o = new THREE.Mesh(new THREE.OctahedronGeometry(0.07), new THREE.MeshBasicMaterial({ color: color })); sc.add(o); return o; });
+  return { ring, sparks };
+}
+function make3D(canvas, w, h, camZ, camY) {
+  const r = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); r.setSize(w, h, false);
+  const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(40, w / h, 0.1, 50);
+  cam.position.set(0, camY, camZ); cam.lookAt(0, 1, 0);
+  sc.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(3, 5, 4); sc.add(dl);
+  const pl = new THREE.PointLight(0xa78bfa, 0.9, 14); pl.position.set(-3, 2, 3); sc.add(pl);
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.9, 0.12, 24), new THREE.MeshStandardMaterial({ color: 0x3b2a78, roughness: 0.9, transparent: true, opacity: 0.55 }));
+  disc.position.y = -0.06; sc.add(disc);
+  return { r: r, sc: sc, cam: cam, obj: null, swing: 0, flash: 0, spawn: 1 };
+}
+function set3D(on) {
+  S3.on = on;
+  const show = (id, v) => { const e = document.getElementById(id); if (e && e.style) e.style.display = v; };
+  show("rpgCanvas", on ? "none" : ""); show("hero3d", on ? "block" : "none");
+  show("bossSprite", on ? "none" : ""); show("boss3d", on ? "block" : "none");
+  if (!on && S3.raf) { cancelAnimationFrame(S3.raf); S3.raf = 0; }
+  syncBattleHero();
+}
+function sync3D() {
+  if (!currentUser) return;
+  const st = document.getElementById("stage3dStatus"), say = t => { if (st) st.innerText = t; };
+  if (ui.lite) { say("โหมดประหยัดแรง: แสดงแบบ 2D (กดปุ่ม 🍃 ด้านบนเพื่อเปิด 3D)"); if (S3.on) set3D(false); return; }
+  if (typeof THREE === "undefined") { say("โหลด Three.js ไม่สำเร็จ (อาจถูกส่วนขยาย/เครือข่ายบล็อก) จึงแสดงแบบ 2D"); if (S3.on) set3D(false); return; }
+  if (S3.failed) { say("อุปกรณ์นี้ไม่รองรับ WebGL จึงแสดงแบบ 2D"); return; }
+  try {
+    if (!S3.hero) {
+      S3.hero = make3D(document.getElementById("hero3d"), 420, 300, 5.4, 1.35);
+      S3.boss = make3D(document.getElementById("boss3d"), 320, 260, 6, 1.5);
+    }
+    set3D(true); say("🧊 โหมด 3D");
+    const H = S3.hero, B = S3.boss, hk = currentUser.heroClass + "|" + currentUser.pet;
+    if (S3.key.h !== hk) {
+      [H.obj, H.pet, H.ring].concat(H.sparks || []).forEach(o => { if (o) H.sc.remove(o); });
+      const hb = buildHero3D(currentUser.heroClass); H.obj = hb.g; H.arm = hb.arm; H.obj.position.set(-0.5, 0, 0); H.sc.add(hb.g);
+      H.pet = buildPet3D(currentUser.pet); H.sc.add(H.pet);
+      const f = fx3D(H.sc, hb.color, 10); H.ring = f.ring; H.sparks = f.sparks; S3.key.h = hk;
+    }
+    if (S3.key.b !== currentUser.bossStage) {
+      [B.obj, B.ring].concat(B.sparks || []).forEach(o => { if (o) B.sc.remove(o); });
+      const bb = buildBoss3D(currentUser.bossStage); B.obj = bb.g; B.mat = bb.mat; B.base = bb.base; B.orbit = bb.orbit; B.aura = bb.aura;
+      B.cam.position.set(0, 1.0 + bb.base * 0.6, 4.6 + bb.base * 2.5); B.cam.lookAt(0, bb.base * 1.05, 0);
+      const f = fx3D(B.sc, 0xef4444, 6); B.ring = f.ring; B.sparks = f.sparks; B.ring.scale.setScalar(bb.base * 1.15);
+      B.spawn = 0; B.sc.add(bb.g); S3.key.b = currentUser.bossStage;
+    }
+    if (!S3.raf) S3.raf = requestAnimationFrame(loop3D);
+  } catch (e) { console.warn("3D disabled, using 2D", e); S3.failed = true; set3D(false); say("เปิด 3D ไม่สำเร็จ จึงแสดงแบบ 2D: " + String((e && e.message) || e).slice(0, 90)); }
+}
+function retry3D() {
+  S3.failed = false; S3.hero = null; S3.boss = null; S3.key = {};
+  if (ui.lite) { ui.lite = false; saveUI(); applyUI(); return; }
+  if (typeof THREE === "undefined") {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js";
+    s.onload = () => sync3D(); s.onerror = () => showToast("โหลด Three.js ไม่ได้ ตรวจว่าเครือข่ายหรือส่วนขยายบล็อก cdn.jsdelivr.net / cdnjs.cloudflare.com หรือไม่");
+    document.head.appendChild(s); return;
+  }
+  sync3D();
+}
+function stage3dAttack() {
+  if (!S3.on || !S3.hero) return;
+  S3.hero.swing = 1;
+  setTimeout(() => { if (S3.boss) S3.boss.flash = 1; }, 220);
+}
+function loop3D() {
+  if (!S3.on) { S3.raf = 0; return; }
+  S3.raf = requestAnimationFrame(loop3D);
+  if (document.hidden) return;
+  const t = performance.now() / 1000, H = S3.hero, B = S3.boss, k = CALM ? 0.15 : 1;
+  const rise = (s, i, R, spd) => { const u = (i * 0.37 + t * spd) % 1; s.position.set(Math.cos(t * 0.9 + i * 2.4) * R, 0.2 + u * 2.4, Math.sin(t * 0.9 + i * 2.4) * R); s.rotation.y = t * 3; };
+  if (H.obj) {
+    H.obj.rotation.y = Math.sin(t * 0.7) * 0.45 * k + 0.25; H.obj.position.y = Math.sin(t * 2) * 0.05 * k;
+    if (H.swing > 0) { H.swing = Math.max(0, H.swing - 0.045); const p = 1 - H.swing; H.arm.rotation.x = -Math.sin(p * Math.PI) * 2.3; H.obj.position.x = -0.5 + Math.sin(p * Math.PI) * 0.35; }
+    else { H.arm.rotation.x = Math.sin(t * 2) * 0.06; H.obj.position.x = -0.5; }
+    H.pet.position.set(1.15 + Math.cos(t * 1.3) * 0.15, 0.5 + Math.abs(Math.sin(t * 3)) * 0.2, 0.5); H.pet.rotation.y = Math.sin(t) * 0.5;
+    H.ring.rotation.z = t * 0.6; H.sparks.forEach((s, i) => rise(s, i, 1.7, 0.2));
+  }
+  if (B.obj) {
+    B.spawn = Math.min(1, B.spawn + 0.04); const e = 1 - Math.pow(1 - B.spawn, 3);
+    B.obj.scale.setScalar(Math.max(0.01, B.base * e)); B.obj.rotation.y = -0.45 + Math.sin(t * 0.5) * 0.4 * k; B.obj.position.y = 0.85 * B.base + Math.sin(t * 1.5) * 0.1 * k;
+    B.flash = Math.max(0, B.flash - 0.06); B.mat.emissive.setRGB(B.flash, B.flash * 0.1, B.flash * 0.1);
+    B.obj.position.x = B.flash > 0 ? (Math.random() - 0.5) * 0.15 * B.flash : 0;
+    B.orbit.forEach((o, i) => o.position.set(Math.cos(t * 1.6 + i * 1.3) * 1.6, 0.7 + Math.sin(t * 2 + i) * 0.25, Math.sin(t * 1.6 + i * 1.3) * 1.6));
+    B.aura.scale.setScalar(1 + Math.sin(t * 2) * 0.06);
+    B.ring.rotation.z = -t * 0.5; B.sparks.forEach((s, i) => rise(s, i, 1.9 * B.base, 0.18));
+  }
+  H.r.render(H.sc, H.cam); B.r.render(B.sc, B.cam);
+}
+window.addEventListener("three-ready", () => { if (currentUser) sync3D(); });
+
+// 3D LOGIN SCENE: magic portal + class preview hero + floating crystals (reuses the game's low-poly builders)
+const A3 = { r: null, sc: null, cam: null, raf: 0, hero: null, boss: null, rings: [], runes: null, pts: null, crystals: [], mx: 0, my: 0, tx: 0, ty: 0, tint: null, key: "", ok: false, spawn: 0 };
+function authVisible() { const a = document.getElementById("authScreen"); return a && !a.classList.contains("hidden"); }
+function authPickClass() { if (A3.ok) { A3.spawn = 0; buildAuthHero(); } }
+function buildAuthHero() {
+  const sel = document.getElementById("classSelect"), cls = sel ? sel.value : "WARRIOR";
+  if (A3.hero) { A3.sc.remove(A3.hero.g); A3.hero.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.dispose) o.material.dispose(); }); }
+  const hb = buildHero3D(cls); hb.g.scale.setScalar(1.35); A3.sc.add(hb.g); A3.hero = hb; A3.key = cls;
+  const c = new THREE.Color(hb.color); A3.tint.color.copy(c); A3.tint.intensity = 1.6;
+  A3.rings.forEach((m, i) => { m.material.color.copy(c); m.material.emissive.copy(c); });
+  A3.crystals.forEach(m => { m.material.emissive.copy(c); });
+  A3.spawn = 0;
+}
+function startAuth3D() {
+  const scr = document.getElementById("authScreen"), cv = document.getElementById("authCanvas");
+  if (!scr || !cv) return;
+  if (ui.lite || typeof THREE === "undefined" || S3.failed) { scr.classList.remove("auth3d"); return; }
+  try {
+    if (!A3.r) {
+      A3.r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+      A3.r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      A3.sc = new THREE.Scene(); A3.sc.fog = new THREE.FogExp2(0x0d0a1a, 0.045);
+      A3.cam = new THREE.PerspectiveCamera(46, 1, 0.1, 80);
+      A3.sc.add(new THREE.AmbientLight(0xffffff, 0.55));
+      const dl = new THREE.DirectionalLight(0xffffff, 0.8); dl.position.set(3, 6, 5); A3.sc.add(dl);
+      A3.tint = new THREE.PointLight(0xa78bfa, 1.6, 22); A3.tint.position.set(0, 1.6, 2.5); A3.sc.add(A3.tint);
+      // portal rings (standing gate behind everything) + floor disc
+      const ringMat = () => new THREE.MeshStandardMaterial({ color: 0xa78bfa, emissive: 0xa78bfa, emissiveIntensity: 1.1, roughness: 0.4, metalness: 0.3 });
+      [[4.6, 0.09], [3.9, 0.05], [3.2, 0.07]].forEach((d, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(d[0], d[1], 10, 72), ringMat()); m.position.set(0, 2.6, -5 - i * 0.35); A3.sc.add(m); A3.rings.push(m); });
+      const glow = new THREE.Mesh(new THREE.CircleGeometry(4.3, 48), new THREE.MeshBasicMaterial({ color: 0x6d28d9, transparent: true, opacity: 0.22 }));
+      glow.position.set(0, 2.6, -5.2); A3.sc.add(glow); A3.glow = glow;
+      const floor = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.8, 0.25, 40), new THREE.MeshStandardMaterial({ color: 0x2a1a5e, roughness: 0.8, metalness: 0.2 }));
+      floor.position.set(0, -0.15, 0); A3.sc.add(floor);
+      const fr = new THREE.Mesh(new THREE.TorusGeometry(3.3, 0.05, 8, 64), ringMat()); fr.rotation.x = Math.PI / 2; fr.position.y = 0.02; A3.sc.add(fr); A3.rings.push(fr); A3.floorRing = fr;
+      // rune blocks orbiting the gate
+      A3.runes = new THREE.Group();
+      for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, b = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.5, 0.12), new THREE.MeshStandardMaterial({ color: 0x1e1b4b, emissive: 0x7c3aed, emissiveIntensity: 0.9, flatShading: true }));
+        b.position.set(Math.cos(a) * 5.4, Math.sin(a) * 5.4, 0); b.rotation.z = a + Math.PI / 2; A3.runes.add(b); }
+      A3.runes.position.set(0, 2.6, -5.6); A3.sc.add(A3.runes);
+      // floating crystals
+      for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.18 + Math.random() * 0.22, 0), new THREE.MeshStandardMaterial({ color: 0xc4b5fd, emissive: 0xa78bfa, emissiveIntensity: 0.8, flatShading: true, roughness: 0.3 }));
+        m.userData = { a: Math.random() * 6.28, r: 3 + Math.random() * 3.2, y: 0.8 + Math.random() * 3.8, s: 0.3 + Math.random() * 0.5 }; A3.sc.add(m); A3.crystals.push(m); }
+      // star / mote particles
+      const N = 360, pos = new Float32Array(N * 3);
+      for (let i = 0; i < N; i++) { pos[i * 3] = (Math.random() - 0.5) * 24; pos[i * 3 + 1] = Math.random() * 10 - 1; pos[i * 3 + 2] = -10 + Math.random() * 18; }
+      const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      A3.pts = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xfde68a, size: 0.07, transparent: true, opacity: 0.85 })); A3.sc.add(A3.pts);
+      // boss silhouette to face the hero on wide screens
+      const bb = buildBoss3D(3); A3.boss = bb; A3.sc.add(bb.g);
+      A3.ok = true; window.addEventListener("resize", sizeAuth3D);
+      document.addEventListener("mousemove", e => { A3.tx = e.clientX / (window.innerWidth || 1) - 0.5; A3.ty = e.clientY / (window.innerHeight || 1) - 0.5; });
+    }
+    scr.classList.add("auth3d"); sizeAuth3D(); buildAuthHero();
+    if (!A3.raf) A3.raf = requestAnimationFrame(loopAuth3D);
+  } catch (e) { console.warn("auth 3D disabled", e); A3.ok = false; scr.classList.remove("auth3d"); }
+}
+function sizeAuth3D() {
+  if (!A3.r) return;
+  const w = window.innerWidth || 800, h = window.innerHeight || 600, wide = w / h > 1.25;
+  A3.r.setSize(w, h, false); A3.cam.aspect = w / h; A3.cam.position.set(0, 2.2, wide ? 10 : 12.5); A3.cam.updateProjectionMatrix();
+  A3.wide = wide;
+  if (A3.boss) { A3.boss.g.visible = wide; }
+}
+function loopAuth3D() {
+  if (!authVisible() || ui.lite) { A3.raf = 0; return; }
+  A3.raf = requestAnimationFrame(loopAuth3D);
+  if (document.hidden) return;
+  const t = performance.now() / 1000, k = CALM ? 0.3 : 1;
+  A3.mx += (A3.tx - A3.mx) * 0.06; A3.my += (A3.ty - A3.my) * 0.06;
+  A3.cam.position.x = A3.mx * 3.2; A3.cam.position.y = 2.2 - A3.my * 1.6; A3.cam.lookAt(0, 1.7, 0);
+  const card = document.getElementById("authCard");
+  if (card && !CALM) { card.style.setProperty("--ay", (A3.mx * 14).toFixed(2) + "deg"); card.style.setProperty("--ax", (-A3.my * 12).toFixed(2) + "deg"); }
+  A3.rings.slice(0, 3).forEach((m, i) => { m.rotation.z = t * (0.25 + i * 0.18) * (i % 2 ? -1 : 1) * k; m.rotation.x = Math.sin(t * 0.4 + i) * 0.08 * k; });
+  A3.floorRing.rotation.z = -t * 0.5 * k; A3.runes.rotation.z = t * 0.18 * k;
+  A3.glow.material.opacity = 0.18 + Math.sin(t * 1.6) * 0.06; A3.tint.intensity = 1.5 + Math.sin(t * 2.2) * 0.3;
+  A3.crystals.forEach((m, i) => { const d = m.userData, a = d.a + t * d.s * 0.4 * k; m.position.set(Math.cos(a) * d.r, d.y + Math.sin(t * 1.3 + i) * 0.25 * k, Math.sin(a) * d.r * 0.8 - 1.2); m.rotation.x = t * 0.8; m.rotation.y = t * 1.1; });
+  A3.pts.rotation.y = t * 0.02 * k; A3.pts.position.y = Math.sin(t * 0.3) * 0.2;
+  A3.spawn = Math.min(1, A3.spawn + 0.035); const e = 1 - Math.pow(1 - A3.spawn, 3);
+  if (A3.hero) {
+    const hx = A3.wide ? -3.9 : 0, hz = A3.wide ? 0.5 : -2.2, g = A3.hero.g;
+    g.position.set(hx, Math.sin(t * 2) * 0.06 * k + (1 - e) * 3, hz); g.scale.setScalar(1.35 * Math.max(0.01, e));
+    g.rotation.y = (A3.wide ? 0.55 : 0) + Math.sin(t * 0.7) * 0.35 * k + A3.mx * 1.2; A3.hero.arm.rotation.x = Math.sin(t * 2) * 0.1;
+  }
+  if (A3.boss && A3.wide) { const b = A3.boss, g = b.g; g.scale.setScalar(b.base * 0.85); g.position.set(3.9, 0.85 * b.base * 0.85 + Math.sin(t * 1.5) * 0.12 * k, 0.2); g.rotation.y = -0.55 + Math.sin(t * 0.5) * 0.3 * k + A3.mx * 0.8;
+    b.orbit.forEach((o, i) => o.position.set(Math.cos(t * 1.6 + i * 1.3) * 1.6, 0.7 + Math.sin(t * 2 + i) * 0.25, Math.sin(t * 1.6 + i * 1.3) * 1.6)); }
+  A3.r.render(A3.sc, A3.cam);
+}
+window.addEventListener("three-ready", () => { if (authVisible()) startAuth3D(); });
+window.addEventListener("load", () => { if (authVisible()) startAuth3D(); });
+if (typeof THREE !== "undefined" && authVisible()) startAuth3D();
+
+// ===== BATTLE ARENA: 3D hero in the boss panel + class-specific attack effects (2D canvas overlay) =====
+const $b = id => document.getElementById(id);
+const BH = { r: null, sc: null, cam: null, g: null, hero: null, pet: null, key: "", on: false, raf: 0, atk: 0, hurt: 0, mats: [] };
+function syncBattleHero() {
+  const cv = $b("battleHero3d"), em = $b("battleHeroEmoji");
+  if (!cv || !em || !currentUser) return;
+  const off = () => { cv.style.display = "none"; em.style.display = ""; BH.on = false; };
+  if (!S3.on || typeof THREE === "undefined" || ui.lite) return off();
+  try {
+    if (!BH.r) { const m = make3D(cv, 300, 280, 5.2, 1.35); BH.r = m.r; BH.sc = m.sc; BH.cam = m.cam; BH.cam.lookAt(0, 1.05, 0); }
+    const k = currentUser.heroClass + "|" + currentUser.pet;
+    if (BH.key !== k) {
+      [BH.g, BH.pet].forEach(o => { if (o) { BH.sc.remove(o); o.traverse(n => { if (n.geometry) n.geometry.dispose(); }); } });
+      const hb = buildHero3D(currentUser.heroClass); BH.hero = hb; BH.g = hb.g; BH.sc.add(hb.g);
+      BH.pet = buildPet3D(currentUser.pet); BH.sc.add(BH.pet);
+      BH.mats = []; const seen = new Set();
+      hb.g.traverse(n => { if (n.isMesh && n.material && n.material.emissive && !seen.has(n.material)) { seen.add(n.material); n.material.userData.e0 = n.material.emissive.clone(); BH.mats.push(n.material); } });
+      BH.key = k;
+    }
+    cv.style.display = "block"; em.style.display = "none"; BH.on = true;
+    if (!BH.raf) BH.raf = requestAnimationFrame(loopBattleHero);
+  } catch (e) { console.warn("battle hero 3D off", e); off(); }
+}
+function loopBattleHero() {
+  const game = $b("mainGame");
+  if (!BH.on || !currentUser || !game || game.classList.contains("hidden")) { BH.raf = 0; return; }
+  BH.raf = requestAnimationFrame(loopBattleHero);
+  if (document.hidden) return;
+  const t = performance.now() / 1000, k = CALM ? 0.3 : 1, cls = currentUser.heroClass, g = BH.g;
+  let ox = 0, spin = 0, armX = Math.sin(t * 2) * 0.06;
+  if (BH.atk > 0) {
+    BH.atk = Math.max(0, BH.atk - 0.028); const u = 1 - BH.atk, s = Math.sin(Math.min(1, u) * Math.PI);
+    if (cls === "NINJA") { ox = s * 1.5; spin = u < 0.7 ? (1 - Math.pow(1 - u / 0.7, 3)) * Math.PI * 2 : 0; armX = -s * 2.0; }
+    else if (cls === "ARCHMAGE") { ox = -s * 0.15; armX = -2.5 * s; }
+    else { ox = s * 1.1; armX = -2.4 * s; }
+  }
+  if (BH.hurt > 0) { BH.hurt = Math.max(0, BH.hurt - 0.04); ox -= BH.hurt * 0.5; }
+  BH.mats.forEach(m => { const e = m.userData.e0; m.emissive.setRGB(Math.min(1, e.r + BH.hurt * 0.9), e.g, e.b); });
+  g.position.set(-0.35 + ox, Math.sin(t * 2) * 0.05 * k, 0);
+  g.rotation.y = 0.6 + Math.sin(t * 0.7) * 0.08 * k + spin;
+  if (BH.hero.arm) BH.hero.arm.rotation.x = armX;
+  BH.pet.position.set(-1.25 + Math.cos(t * 1.3) * 0.1 * k, 0.55 + Math.abs(Math.sin(t * 3)) * 0.15 * k, 0.7); BH.pet.rotation.y = 0.8;
+  BH.r.render(BH.sc, BH.cam);
+}
+
+// ---- 2D effects engine (overlay canvas above the hero/boss row) ----
+const BFX = { cv: null, ctx: null, list: [], raf: 0, last: 0, w: 0, h: 0 };
+const CLS_FX = { WARRIOR: { c1: "#fb923c", c2: "#fde047", kind: "slash" }, ARCHMAGE: { c1: "#a78bfa", c2: "#22d3ee", kind: "orb" },
+  NINJA: { c1: "#e5e7eb", c2: "#ef4444", kind: "star" }, PALADIN: { c1: "#fbbf24", c2: "#fef3c7", kind: "holy" } };
+const ez = p => 1 - Math.pow(1 - p, 3);
+function hexA(h, a) { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+function bfxSize() {
+  const row = $b("battleRow"), cv = $b("fxCanvas"); if (!row || !cv) return false;
+  const r = row.getBoundingClientRect(); if (r.width < 10 || r.height < 10) return false;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(r.width), H = Math.round(r.height);
+  if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  BFX.cv = cv; BFX.ctx = cv.getContext("2d"); BFX.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); BFX.w = W; BFX.h = H; return true;
+}
+function bfxAnchor(which) {
+  const rr = $b("battleRow").getBoundingClientRect();
+  const pick = which === "hero" ? [BH.on ? "battleHero3d" : "battleHeroEmoji", "battleHeroEmoji"] : [S3.on ? "boss3d" : "bossSprite", "bossSprite"];
+  let el = $b(pick[0]), r = el.getBoundingClientRect(); if (r.width < 2) { el = $b(pick[1]); r = el.getBoundingClientRect(); }
+  return { x: r.left - rr.left + r.width / 2, y: r.top - rr.top + r.height * 0.52, w: r.width, h: r.height };
+}
+function bfxAdd(f) { f.at = performance.now() + (f.delay || 0); BFX.list.push(f); if (!BFX.raf) { BFX.last = performance.now(); BFX.raf = requestAnimationFrame(bfxLoop); } return f; }
+function bfxLoop(now) {
+  const ctx = BFX.ctx; if (!ctx) { BFX.raf = 0; return; }
+  const dt = Math.min(0.05, (now - BFX.last) / 1000 || 0.016); BFX.last = now;
+  ctx.clearRect(0, 0, BFX.w, BFX.h);
+  BFX.list = BFX.list.filter(f => {
+    const p = (now - f.at) / f.dur; if (p < 0) return true;
+    if (!f.started) { f.started = true; if (f.start) { try { f.start(); } catch (e) {} } }
+    if (p >= 1) return false;
+    ctx.save(); try { f.draw(ctx, p, dt); } catch (e) {} ctx.restore(); return true;
+  });
+  if (BFX.list.length) BFX.raf = requestAnimationFrame(bfxLoop); else { BFX.raf = 0; ctx.clearRect(0, 0, BFX.w, BFX.h); }
+}
+function fxCall(delay, fn) { return bfxAdd({ delay, dur: 1, draw() {}, start: fn }); }
+function fxParticles(x, y, n, cols, o) {
+  o = o || {};
+  const parts = Array.from({ length: n }, () => {
+    const a = o.dir !== undefined ? o.dir + (Math.random() - 0.5) * (o.spread || 1.2) : Math.random() * 6.283, v = (o.speed || 160) * (0.4 + Math.random() * 0.8);
+    return { x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, s: (o.size || 3) * (0.6 + Math.random() * 0.9), c: cols[(Math.random() * cols.length) | 0] };
+  });
+  return bfxAdd({ delay: o.delay, dur: o.life || 600, draw(ctx, p, dt) {
+    ctx.globalAlpha = Math.max(0, 1 - p);
+    parts.forEach(q => { q.vy += (o.grav === undefined ? 260 : o.grav) * dt; q.x += q.vx * dt; q.y += q.vy * dt; ctx.fillStyle = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(0.5, q.s * (1 - p * 0.5)), 0, 6.283); ctx.fill(); });
+  } });
+}
+function fxRing(x, y, r0, r1, col, o) {
+  o = o || {};
+  return bfxAdd({ delay: o.delay, dur: o.dur || 400, draw(ctx, p) { ctx.globalAlpha = 1 - p; ctx.strokeStyle = col; ctx.lineWidth = (o.lw || 4) * (1 - p) + 1; ctx.beginPath(); ctx.arc(x, y, r0 + (r1 - r0) * ez(p), 0, 6.283); ctx.stroke(); } });
+}
+function fxFlash(x, y, r, col, o) {
+  o = o || {};
+  return bfxAdd({ delay: o.delay, dur: o.dur || 260, draw(ctx, p) {
+    const rr = r * (0.6 + 0.4 * p), g = ctx.createRadialGradient(x, y, 0, x, y, rr);
+    g.addColorStop(0, col); g.addColorStop(1, "rgba(0,0,0,0)"); ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 1 - p; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rr, 0, 6.283); ctx.fill();
+  } });
+}
+function fxNumber(x, y, text, col, o) {
+  o = o || {}; const size = o.size || 24;
+  return bfxAdd({ delay: o.delay, dur: o.dur || 900, draw(ctx, p) {
+    const sc = p < 0.15 ? 0.6 + (p / 0.15) * 0.8 : 1.4 - 0.4 * Math.min(1, (p - 0.15) / 0.2);
+    ctx.globalAlpha = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3; ctx.translate(x, y - 38 * ez(p)); ctx.scale(sc, sc);
+    ctx.font = `800 ${size}px Kanit, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    ctx.lineWidth = 5; ctx.strokeStyle = "#1a0b2e"; ctx.strokeText(text, 0, 0);
+    if (o.big) { ctx.shadowColor = col; ctx.shadowBlur = 14; }
+    ctx.fillStyle = col; ctx.fillText(text, 0, 0);
+  } });
+}
+function fxSlash(x, y, ang, len, cols, o) {
+  o = o || {}; const cs = Math.cos(ang), sn = Math.sin(ang), W = o.w || 14;
+  const pt = t => { const u = 1 - t, lx = u * u * (-len / 2) + t * t * (len / 2), ly = 2 * u * t * (-len * 0.35); return [x + lx * cs - ly * sn, y + lx * sn + ly * cs]; };
+  return bfxAdd({ delay: o.delay, dur: o.dur || 300, draw(ctx, p) {
+    const tmax = Math.min(1, p * 1.6), tmin = Math.max(0, (p - 0.35) * 1.6), fade = p < 0.55 ? 1 : 1 - (p - 0.55) / 0.45;
+    ctx.lineCap = "round"; ctx.globalCompositeOperation = "lighter";
+    [[cols[0], 2.2, 0.35], [cols[1], 1, 1]].forEach(([c, m, a]) => {
+      ctx.strokeStyle = c; ctx.globalAlpha = a * fade; let prev = pt(tmin);
+      for (let i = 1; i <= 14; i++) { const t = tmin + (tmax - tmin) * i / 14, q = pt(t); ctx.lineWidth = Math.max(1, W * m * Math.sin(Math.PI * t)); ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); prev = q; }
+    });
+  } });
+}
+function fxProjectile(a, b, o) {
+  const trail = [];
+  return bfxAdd({ delay: o.delay, dur: o.dur || 240, draw(ctx, p) {
+    const q = p * p * 0.4 + p * 0.6, x = a.x + (b.x - a.x) * q, y = a.y + (b.y - a.y) * q - Math.sin(q * Math.PI) * (o.arc || 0);
+    trail.push([x, y]); if (trail.length > 9) trail.shift(); ctx.globalCompositeOperation = "lighter";
+    trail.forEach((t, i) => { ctx.globalAlpha = (i / trail.length) * 0.55; ctx.fillStyle = o.c1; ctx.beginPath(); ctx.arc(t[0], t[1], (o.r || 10) * (i / trail.length), 0, 6.283); ctx.fill(); });
+    ctx.globalAlpha = 1; o.head(ctx, x, y, p);
+  } });
+}
+function fxBeam(x, y, col, o) {
+  o = o || {};
+  return bfxAdd({ delay: o.delay, dur: o.dur || 420, draw(ctx, p) {
+    const w = (28 + 44 * Math.sin(Math.min(1, p * 2.5) * Math.PI / 2)) * (1 - Math.pow(p, 3)), g = ctx.createLinearGradient(x - w, 0, x + w, 0);
+    g.addColorStop(0, hexA(col, 0)); g.addColorStop(0.5, hexA(col, 0.95)); g.addColorStop(1, hexA(col, 0));
+    ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = g; ctx.fillRect(x - w, 0, w * 2, y);
+    ctx.beginPath(); ctx.ellipse(x, y, w * 1.6, w * 0.45, 0, 0, 6.283); ctx.fill();
+  } });
+}
+function fxCross(x, y, col, o) {
+  o = o || {};
+  return bfxAdd({ delay: o.delay, dur: o.dur || 420, draw(ctx, p) {
+    const L = 70 * ez(Math.min(1, p * 2)), w = 8 * (1 - p); ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 1 - p; ctx.fillStyle = col;
+    ctx.fillRect(x - L, y - w / 2, L * 2, w); ctx.fillRect(x - w / 2, y - L, w, L * 2);
+  } });
+}
+function shakeRow() { if (CALM) return; const r = $b("battleRow"); if (!r) return; r.classList.remove("shake"); void r.offsetWidth; r.classList.add("shake"); setTimeout(() => r.classList.remove("shake"), 320); }
+function flashPanel(kind) { const o = $b("hitOverlay"); if (!o) return; o.className = ""; void o.offsetWidth; o.className = kind; }
+function hpFlash(id) { const e = $b(id); if (!e) return; e.classList.remove("hpflash"); void e.offsetWidth; e.classList.add("hpflash"); setTimeout(() => e.classList.remove("hpflash"), 420); }
+function lungeBoss() { const e = $b(S3.on ? "boss3d" : "bossSprite"); if (!e) return; e.classList.remove("lunge"); void e.offsetWidth; e.classList.add("lunge"); setTimeout(() => e.classList.remove("lunge"), 520); }
+
+function battleHit(dmg) {
+  try {
+    if (!currentUser || !bfxSize()) return false;
+    const cls = currentUser.heroClass || "WARRIOR", F = CLS_FX[cls] || CLS_FX.WARRIOR, A = bfxAnchor("hero"), B = bfxAnchor("boss");
+    const base = Math.max(1, currentUser.baseAtk || 10), size = Math.round(Math.min(40, 20 + (dmg / base) * 7)), big = dmg >= base * 2;
+    const number = d => fxNumber(B.x + (Math.random() - 0.5) * 30, B.y - B.h * 0.25, "-" + dmg, big ? "#fde047" : "#fbbf24", { delay: d, size, big });
+    if (ui.lite) { fxCall(0, () => flashPanel("hitw")); number(0); return true; }
+    BH.atk = 1;
+    const ox = A.x + A.w * 0.3, oy = A.y - A.h * 0.1, nP = CALM ? 6 : 14;
+    const impact = (d, k) => {
+      fxCall(d, () => { if (S3.boss) S3.boss.flash = 1; flashPanel("hitw"); hpFlash("bossHpBar"); });
+      fxFlash(B.x, B.y, 60 + 60 * k, F.c2, { delay: d, dur: 260 });
+      fxRing(B.x, B.y, 10, 50 + 50 * k, F.c1, { delay: d, dur: 380 });
+      fxParticles(B.x, B.y, Math.round(nP * (0.6 + k)), [F.c1, F.c2, "#ffffff"], { delay: d, speed: 150 + 120 * k, life: 560, size: 3 });
+    };
+    if (F.kind === "slash") {
+      fxSlash(B.x, B.y, -0.6, B.h * 1.2, [F.c1, F.c2], { delay: 150, dur: 300 }); impact(190, 0.6);
+      fxSlash(B.x, B.y, 0.6, B.h * 1.2, [F.c1, F.c2], { delay: 270, dur: 300 }); impact(310, 1); number(310); fxCall(310, shakeRow);
+    } else if (F.kind === "orb") {
+      fxFlash(ox, oy, 46, F.c2, { dur: 220 });
+      fxProjectile({ x: ox, y: oy }, B, { delay: 180, dur: 260, c1: F.c1, arc: 18, r: 12, head: (ctx, x, y) => { const g = ctx.createRadialGradient(x, y, 0, x, y, 16); g.addColorStop(0, "#ffffff"); g.addColorStop(0.4, F.c2); g.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 16, 0, 6.283); ctx.fill(); } });
+      impact(440, 1); fxRing(B.x, B.y, 10, 120, F.c2, { delay: 440, dur: 520 }); number(440); fxCall(440, shakeRow);
+    } else if (F.kind === "star") {
+      [0, 1, 2].forEach(i => {
+        const tgt = { x: B.x, y: B.y + (i - 1) * 16 };
+        fxProjectile({ x: ox, y: oy }, tgt, { delay: 60 + i * 90, dur: 200, c1: "#cbd5e1", r: 6, head: (ctx, x, y, p) => { ctx.translate(x, y); ctx.rotate(p * 18); ctx.fillStyle = "#e5e7eb"; ctx.strokeStyle = F.c2; ctx.lineWidth = 1.5; ctx.beginPath(); for (let k = 0; k < 8; k++) { const r = k % 2 ? 4 : 12, a = k * Math.PI / 4; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); ctx.fill(); ctx.stroke(); } });
+        impact(260 + i * 90, i === 2 ? 0.8 : 0.35);
+      });
+      fxSlash(B.x, B.y, -0.8, B.h * 1.1, ["#ef4444", "#ffffff"], { delay: 400, dur: 260, w: 7 }); fxSlash(B.x, B.y, 0.8, B.h * 1.1, ["#ef4444", "#ffffff"], { delay: 430, dur: 260, w: 7 });
+      number(440); fxCall(440, shakeRow);
+    } else {
+      fxRing(A.x, A.y, 10, 70, F.c1, { dur: 300 }); fxBeam(B.x, B.y, F.c1, { delay: 100, dur: 420 }); impact(200, 1); fxCross(B.x, B.y, F.c2, { delay: 200, dur: 420 });
+      fxParticles(B.x, B.y, nP + 4, [F.c1, F.c2, "#ffffff"], { delay: 200, dir: -Math.PI / 2, spread: 1.6, grav: -40, speed: 140, life: 800 }); number(220); fxCall(220, shakeRow);
+    }
+    return true;
+  } catch (e) { console.warn("battle fx", e); return false; }
+}
+function battleCounter(dmg) {
+  try {
+    if (!currentUser || !bfxSize()) return;
+    const A = bfxAnchor("hero");
+    BH.hurt = 1;
+    if (!ui.lite) {
+      lungeBoss();
+      fxSlash(A.x, A.y, 0.7, A.h * 1.1, ["#ef4444", "#fecaca"], { delay: 140, dur: 300, w: 12 }); fxSlash(A.x, A.y, -0.7, A.h * 1.1, ["#ef4444", "#fecaca"], { delay: 220, dur: 300, w: 12 });
+      fxFlash(A.x, A.y, 70, "#ef4444", { delay: 180, dur: 280 }); fxParticles(A.x, A.y, CALM ? 6 : 12, ["#ef4444", "#fca5a5"], { delay: 180, speed: 150, life: 500 });
+      fxCall(180, () => { flashPanel("hurt"); hpFlash("playerHpBar"); shakeRow(); });
+    } else fxCall(0, () => flashPanel("hurt"));
+    fxNumber(A.x, A.y - A.h * 0.3, "-" + dmg, "#f87171", { delay: 190, size: 26 });
+  } catch (e) { console.warn("battle fx", e); }
+}
+function battleVictory() {
+  try {
+    if (!currentUser || ui.lite || !bfxSize()) return;
+    const B = bfxAnchor("boss");
+    ["#fde047", "#fb923c", "#ffffff"].forEach((c, i) => fxRing(B.x, B.y, 10, 90 + i * 50, c, { delay: i * 120, dur: 700, lw: 6 }));
+    fxFlash(B.x, B.y, 150, "#ffffff", { dur: 500 });
+    fxParticles(B.x, B.y, CALM ? 20 : 50, ["#fde047", "#fbbf24", "#fb923c", "#ffffff"], { speed: 260, life: 1100, size: 4 });
+    fxNumber(BFX.w / 2, BFX.h * 0.22, "VICTORY!", "#fde047", { delay: 200, size: 34, dur: 1400, big: true }); fxCall(0, shakeRow);
+  } catch (e) { console.warn("battle fx", e); }
+}
+
+// ---- UX helpers: password toggle, Enter-to-login, daily ring, how-to-play tutorial ----
+function togglePw() {
+  const i = document.getElementById("passwordInput"), b = document.getElementById("pwToggle");
+  if (!i) return; const show = i.type === "password"; i.type = show ? "text" : "password"; if (b) b.innerText = show ? "ซ่อน" : "แสดง";
+}
+["usernameInput", "passwordInput"].forEach(id => { const e = document.getElementById(id); if (e) e.addEventListener("keydown", ev => { if (ev.key === "Enter") handleLogin(); }); });
+function updateDailyRing() {
+  const arc = document.getElementById("dailyRingArc"), tx = document.getElementById("dailyRingText");
+  if (!arc || !tx || !currentUser) return;
+  const n = Math.max(0, Math.min(DAILY_REWARD_CAP, Number(ensureDaily().rewarded) || 0));
+  arc.style.strokeDashoffset = (125.66 * (1 - n / DAILY_REWARD_CAP)).toFixed(1);
+  arc.style.stroke = n >= DAILY_REWARD_CAP ? "#34d399" : "#fbbf24";
+  tx.textContent = n + "/" + DAILY_REWARD_CAP;
+}
+const TUTORIAL_STEPS = [
+  { i: "🎯", t: "ทำภารกิจจริง ได้พลังจริง", d: "ติ๊กภารกิจรายวันเมื่อคุณทำสิ่งนั้นจริงๆ ในชีวิต แล้วจะได้ EXP, Gold และ ⚡ พลังโจมตี เพิ่มภารกิจของตัวเองได้ด้วย" },
+  { i: "⚡", t: "⚡ คือพลังโจมตีบอส", d: "รับ ⚡ ได้จากภารกิจ การจับเวลาโฟกัส และการเขียนบันทึกสะท้อนตัวเอง จากนั้นกดโจมตีบอสเพื่อผ่านด่านและรับ Gold" },
+  { i: "🔥", t: "สตรีค และรางวัลประจำวัน", d: "เช็กอินติดต่อกันทุกวันเพื่อรับโบนัส วงแหวนรางวัลวันนี้นับสูงสุด 8 ภารกิจต่อวัน ที่เหลือทำเพื่อตัวคุณเองได้เต็มที่ ไม่ต้องฝืน" },
+  { i: "💾", t: "สำรองข้อมูลไว้ด้วยนะ", d: "ความคืบหน้าเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น กดปุ่ม 💾 เซฟ ด้านบนเพื่อดาวน์โหลดไฟล์สำรอง แล้วนำเข้าใหม่ได้เมื่อเปลี่ยนเครื่อง" }
+];
+function showTutorial(manual) {
+  const old = document.getElementById("tutorialModal"); if (old) old.remove();
+  let n = 0;
+  const m = document.createElement("div"); m.id = "tutorialModal";
+  m.className = "fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm";
+  const close = () => { m.remove(); document.removeEventListener("keydown", onKey); if (currentUser && !currentUser.seenTutorial) { currentUser.seenTutorial = true; saveDB(); } };
+  const onKey = e => { if (e.key === "Escape") close(); };
+  const draw = () => {
+    const s = TUTORIAL_STEPS[n], last = n === TUTORIAL_STEPS.length - 1;
+    m.innerHTML = `<div class="glass w-full max-w-sm rounded-3xl p-6 text-center space-y-3" role="dialog" aria-modal="true">
+      <div class="text-5xl">${s.i}</div><h3 class="text-lg font-extrabold text-amber-300">${s.t}</h3>
+      <p class="text-sm text-slate-300 leading-relaxed">${s.d}</p>
+      <div class="flex justify-center gap-1.5 py-1">${TUTORIAL_STEPS.map((_, k) => `<span class="w-2 h-2 rounded-full ${k === n ? "bg-amber-300" : "bg-purple-500/40"}"></span>`).join("")}</div>
+      <div class="flex gap-2 pt-1">
+        <button data-a="skip" class="flex-1 border border-purple-500/40 rounded-xl py-2 text-xs font-bold">${last ? "ปิด" : "ข้าม"}</button>
+        <button data-a="next" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl py-2 text-xs font-bold">${last ? "เริ่มผจญภัย!" : "ถัดไป"}</button>
+      </div></div>`;
+    m.querySelector('[data-a="skip"]').onclick = close;
+    m.querySelector('[data-a="next"]').onclick = () => { if (last) close(); else { n++; draw(); } };
+  };
+  m.addEventListener("click", e => { if (e.target === m) close(); });
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(m); draw();
+}
+
+// SELF-DEVELOPMENT: DAILY REFLECTION JOURNAL
+function todayPrompt() {
+  const d = new Date();
+  return JOURNAL_PROMPTS[Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000) % JOURNAL_PROMPTS.length];
+}
+
+function saveJournalEntry() {
+  const ta = document.getElementById("journalInput");
+  const text = ta.value.trim();
+  if (!text) return alert("เขียนอะไรสักหน่อยก่อนบันทึกนะ");
+  if (text.length < 10) return alert("ลองเขียนเพิ่มอีกนิด (อย่างน้อย 10 ตัวอักษร) เพื่อให้เป็นการสะท้อนตัวเองจริงๆ");
+
+  const daily = ensureDaily();
+  currentUser.journal.unshift({ date: todayKey(), ts: Date.now(), prompt: todayPrompt(), text: text.slice(0, 500) });
+  if (currentUser.journal.length > 100) currentUser.journal.length = 100;
+  ta.value = "";
+
+  let msg = "📓 บันทึกเรียบร้อย";
+  if (!daily.journal) {
+    daily.journal = true;
+    currentUser.exp += 15;
+    currentUser.charges = (currentUser.charges || 0) + 1;
+    currentUser.stats.journalCount = (currentUser.stats.journalCount || 0) + 1;
+    recordCategory("mind");
+    msg += " +15 EXP, ⚡+1";
+  } else {
+    msg += " (วันนี้รับรางวัลบันทึกไปแล้ว)";
+  }
+  addActivityLog("เขียนบันทึกสะท้อนตัวเอง", "-", "SUCCESS");
+  checkAchievements();
+  checkLevelUp();
+  saveDB();
+  renderAll();
+  alert(msg);
+}
+
+function renderJournal() {
+  const daily = ensureDaily();
+  document.getElementById("journalPrompt").innerText = `💭 คำถามวันนี้: ${todayPrompt()}`;
+  document.getElementById("journalCountBadge").innerText = `${currentUser.journal.length} บันทึก`;
+  document.getElementById("journalStatus").innerText = daily.journal ? "✅ วันนี้รับรางวัลบันทึกแล้ว" : "ยังไม่ได้รับรางวัลบันทึกวันนี้";
+  const list = document.getElementById("journalList");
+  if (currentUser.journal.length === 0) {
+    list.innerHTML = `<div class="text-center text-xs text-slate-500 py-3">ยังไม่มีบันทึก — เริ่มเขียนบรรทัดแรกของคุณได้เลย</div>`;
+    return;
+  }
+  list.innerHTML = currentUser.journal.slice(0, 5).map(j => `
+    <div class="glass p-3 rounded-xl border-purple-500/20 text-xs">
+      <div class="text-[10px] text-purple-300 mb-1">${esc(j.date)}${j.prompt ? " · " + esc(j.prompt) : ""}</div>
+      <div class="text-slate-200 whitespace-pre-wrap">${esc(j.text)}</div>
+    </div>
+  `).join("");
+}
+
+function renderBalance() {
+  const tot = weeklyCategoryTotals();
+  const max = Math.max(3, ...Object.values(tot));
+  document.getElementById("balanceBars").innerHTML = Object.entries(CATEGORIES).map(([key, c]) => `
+    <div>
+      <div class="flex justify-between text-[11px] text-slate-300 mb-0.5"><span>${c.icon} ${c.label}</span><b>${tot[key]}</b></div>
+      <div class="h-2 bg-slate-900 rounded-full overflow-hidden"><div class="h-full ${c.bar}" style="width:${Math.round((tot[key] / max) * 100)}%"></div></div>
+    </div>
+  `).join("");
+  const sum = Object.values(tot).reduce((a, b) => a + b, 0);
+  const hint = document.getElementById("balanceHint");
+  if (sum === 0) { hint.innerText = "ทำภารกิจเพื่อเริ่มสร้างภาพสมดุลชีวิตของคุณ"; return; }
+  const lowest = Object.entries(tot).sort((a, b) => a[1] - b[1])[0];
+  hint.innerText = lowest[1] === 0
+    ? `💡 สัปดาห์นี้ยังไม่มีหมวด "${CATEGORIES[lowest[0]].label}" ลองเพิ่มภารกิจด้านนี้ดู`
+    : `💡 หมวดที่น้อยที่สุดคือ "${CATEGORIES[lowest[0]].label}" — อย่าลืมดูแลด้านนี้ด้วย`;
+}
+
+// EDITABLE DAILY SCHEDULE
+function addScheduleItem() {
+  const s = document.getElementById("schedStart").value, e = document.getElementById("schedEnd").value;
+  const taskEl = document.getElementById("schedTask"), t = taskEl.value.trim().slice(0, 60);
+  if (!s || !e || !t) return alert("กรอกเวลาเริ่ม เวลาจบ และชื่อกิจกรรมให้ครบ");
+  if (e <= s) return alert("เวลาจบต้องอยู่หลังเวลาเริ่ม");
+  if (currentUser.scheduleTemplate.length >= 20) return alert("ตารางเต็ม 20 รายการแล้ว ลบอันที่ไม่ใช้ก่อนนะ");
+  const id = Math.max(0, ...currentUser.scheduleTemplate.map(x => x.id), ...currentUser.schedule.map(x => x.id)) + 1;
+  const time = `${s} - ${e}`;
+  currentUser.scheduleTemplate.push({ id, time, task: t });
+  currentUser.schedule.push({ id, time, task: t, status: "PENDING" });
+  [currentUser.scheduleTemplate, currentUser.schedule].forEach(a => a.sort((x, y) => String(x.time).localeCompare(String(y.time))));
+  taskEl.value = "";
+  saveDB(); renderSchedule();
+}
+function deleteScheduleItem(id) {
+  const it = currentUser.schedule.find(x => x.id === id);
+  if (!it || !confirm(`ลบ "${it.task}" ออกจากตารางประจำวัน?`)) return;
+  if (it.status === "IN_PROGRESS" || currentFocusTaskId === id) stopTimerAndReset();
+  currentUser.scheduleTemplate = currentUser.scheduleTemplate.filter(x => x.id !== id);
+  currentUser.schedule = currentUser.schedule.filter(x => x.id !== id);
+  saveDB(); renderSchedule();
+}
+
+// REMINDERS (work while the page is open)
+let reminderTimer = null;
+const remindedSet = new Set();
+function notifyUser(msg) {
+  showToast(msg);
+  if (hasNotif() && Notification.permission === "granted") { try { new Notification("Chronicles of Aetheria", { body: msg }); } catch (e) {} }
+}
+function checkReminders() {
+  if (!currentUser || !(currentUser.settings && currentUser.settings.reminders)) return;
+  const now = new Date(), mins = now.getHours() * 60 + now.getMinutes(), tk = todayKey();
+  currentUser.schedule.forEach(it => {
+    if (it.status !== "PENDING") return;
+    const m = /^(\d{1,2}):(\d{2})/.exec(it.time || "");
+    if (!m) return;
+    const start = Number(m[1]) * 60 + Number(m[2]);
+    const pre = `${tk}:${it.id}:pre`, go = `${tk}:${it.id}:go`;
+    if (mins >= start - 5 && mins < start && !remindedSet.has(pre)) { remindedSet.add(pre); notifyUser(`⏰ อีก ${start - mins} นาที: ${it.task}`); }
+    else if (mins >= start && mins < start + 10 && !remindedSet.has(go)) { remindedSet.add(go); notifyUser(`▶ ถึงเวลาแล้ว: ${it.task} — กดเริ่มในตารางได้เลย`); }
+  });
+  const left = currentUser.quests.filter(q => !q.done).length, eve = `${tk}:eve`;
+  if (mins >= 20 * 60 && mins < 22 * 60 && left > 0 && !remindedSet.has(eve)) { remindedSet.add(eve); notifyUser(`🌙 เย็นแล้ว ยังเหลือภารกิจ ${left} ข้อ ทำสักข้อก่อนนอนไหม?`); }
+}
+function startReminders() { stopReminders(); reminderTimer = setInterval(checkReminders, 30000); checkReminders(); }
+function stopReminders() { if (reminderTimer !== null) { clearInterval(reminderTimer); reminderTimer = null; } remindedSet.clear(); }
+function toggleReminders() {
+  currentUser.settings.reminders = document.getElementById("reminderToggle").checked;
+  saveDB();
+  if (currentUser.settings.reminders && hasNotif() && Notification.permission === "default") { try { Notification.requestPermission(); } catch (e) {} }
+}
+
+// BACKUP STATUS
+function checkBackupReminder() {
+  const last = currentUser.lastBackup, hasData = (currentUser.logs || []).length > 5;
+  const age = last ? (Date.now() - last) / 86400000 : null;
+  if ((age === null && hasData) || (age !== null && age >= 7)) {
+    showToast("💾 ข้อมูลของคุณเก็บอยู่ในเบราว์เซอร์นี้เครื่องเดียว ล้างข้อมูลเบราว์เซอร์แล้วจะหาย กดปุ่ม 💾 เซฟ ด้านบนเพื่อสำรองไฟล์");
+  }
+}
+function renderSettings() {
+  const cb = document.getElementById("reminderToggle");
+  if (cb) cb.checked = !!(currentUser.settings && currentUser.settings.reminders);
+  const b = document.getElementById("backupStatus");
+  if (b) b.innerText = currentUser.lastBackup ? `💾 สำรองไฟล์ล่าสุด: ${new Date(currentUser.lastBackup).toLocaleDateString("th-TH")}` : "💾 ยังไม่เคยสำรองไฟล์ (กดปุ่ม เซฟ ด้านบน)";
+}
+
+// LONG-TERM GOALS
+function addGoal() {
+  const title = document.getElementById("goalTitle").value.trim().slice(0, 80);
+  if (!title) return alert("กรอกชื่อเป้าหมายก่อนนะ");
+  if (currentUser.goals.length >= 10) return alert("มีเป้าหมายครบ 10 ข้อแล้ว ทำให้สำเร็จหรือลบบางข้อก่อน");
+  const cat = document.getElementById("goalCat").value, due = document.getElementById("goalDue").value;
+  currentUser.goals.push({ id: Math.max(0, ...currentUser.goals.map(g => g.id)) + 1, title, cat: CATEGORIES[cat] ? cat : "life", due: due || "", done: false, steps: [] });
+  document.getElementById("goalTitle").value = "";
+  saveDB(); renderGoals();
+}
+function addGoalStep(gid) {
+  const g = currentUser.goals.find(x => x.id === gid), inp = document.getElementById("step_" + gid);
+  if (!g || !inp) return;
+  const text = inp.value.trim().slice(0, 80);
+  if (!text) return;
+  if (g.steps.length >= 15) return alert("เป้าหมายนี้มี 15 ขั้นตอนแล้ว");
+  g.steps.push({ id: Math.max(0, ...g.steps.map(s => s.id)) + 1, text, done: false, at: "" });
+  g.done = false;
+  saveDB(); renderGoals();
+}
+function completeGoalStep(gid, sid) {
+  const g = currentUser.goals.find(x => x.id === gid), s = g && g.steps.find(x => x.id === sid);
+  if (!s || s.done) return;
+  s.done = true; s.at = todayKey();
+  const daily = ensureDaily();
+  let msg;
+  if (daily.rewarded >= DAILY_REWARD_CAP) { msg = "✅ ทำขั้นตอนสำเร็จ (วันนี้รับรางวัลครบโควตาแล้ว)"; }
+  else {
+    daily.rewarded += 1;
+    currentUser.exp += 30; currentUser.charges = (currentUser.charges || 0) + 1; recordCategory(g.cat);
+    msg = "🎯 ขั้นตอนสำเร็จ +30 EXP, ⚡+1";
+  }
+  if (!g.done && g.steps.every(x => x.done)) {
+    g.done = true;
+    if (g.steps.length >= 3) {
+      currentUser.exp += 100; currentUser.gold += 100; currentUser.tickets = (currentUser.tickets || 0) + 1;
+      msg += `\n🏆 บรรลุเป้าหมาย "${g.title}"! +100 EXP, +100 💰, 🎟️+1`;
+    } else msg += `\n🏆 บรรลุเป้าหมาย "${g.title}"! (เป้าหมายที่มีน้อยกว่า 3 ขั้นตอนไม่มีโบนัส)`;
+  }
+  addActivityLog(`ขั้นตอนเป้าหมาย: ${s.text}`, "-", "SUCCESS");
+  checkLevelUp(); saveDB(); renderAll(); showToast(msg);
+}
+function deleteGoal(gid) {
+  const g = currentUser.goals.find(x => x.id === gid);
+  if (!g || !confirm(`ลบเป้าหมาย "${g.title}" และขั้นตอนทั้งหมด?`)) return;
+  currentUser.goals = currentUser.goals.filter(x => x.id !== gid);
+  saveDB(); renderGoals();
+}
+function renderGoals() {
+  const el = document.getElementById("goalList"), tk = todayKey();
+  if (!currentUser.goals.length) { el.innerHTML = `<div class="text-center text-xs text-slate-500 py-3">ยังไม่มีเป้าหมาย — ตั้งเป้าหมายใหญ่ แล้วแตกเป็นขั้นตอนเล็กๆ</div>`; return; }
+  el.innerHTML = currentUser.goals.map(g => {
+    const c = CATEGORIES[g.cat] || CATEGORIES.life, done = g.steps.filter(s => s.done).length;
+    const pct = g.steps.length ? Math.round(done / g.steps.length * 100) : 0;
+    let due = "";
+    if (g.due && !g.done) { const d = dayDiff(tk, g.due); due = d < 0 ? `<span class="text-red-300">เลยกำหนด ${-d} วัน</span>` : d === 0 ? `<span class="text-amber-300">ครบกำหนดวันนี้</span>` : `<span class="text-slate-400">เหลือ ${d} วัน</span>`; }
+    const steps = g.steps.map(s => `
+      <div class="flex items-center gap-2 text-xs ${s.done ? "text-slate-500 line-through" : "text-slate-200"}">
+        <button ${s.done ? "disabled" : ""} onclick="completeGoalStep(${g.id},${s.id})" class="w-5 h-5 rounded-md border border-purple-500/50 flex items-center justify-center text-[10px] ${s.done ? "bg-emerald-600 text-white" : "hover:bg-purple-700"}">${s.done ? "✓" : ""}</button>
+        <span>${esc(s.text)}</span>
+      </div>`).join("");
+    return `<div class="glass p-3 rounded-xl border-purple-500/20 space-y-2 ${g.done ? "opacity-60" : ""}">
+      <div class="flex items-center justify-between gap-2">
+        <div><div class="font-bold text-sm text-slate-100">${g.done ? "🏆 " : ""}${esc(g.title)}</div>
+        <div class="text-[10px] text-slate-400">${c.icon} ${c.label} · ${done}/${g.steps.length} ขั้นตอน ${due}</div></div>
+        <button onclick="deleteGoal(${g.id})" class="text-slate-500 hover:text-red-400 text-xs" title="ลบเป้าหมาย">✕</button>
+      </div>
+      <div class="h-1.5 bg-slate-900 rounded-full overflow-hidden"><div class="h-full ${c.bar}" style="width:${pct}%"></div></div>
+      ${steps}
+      <div class="flex gap-2"><input id="step_${g.id}" type="text" maxlength="80" placeholder="เพิ่มขั้นตอนเล็กๆ..." class="flex-1 bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
+      <button onclick="addGoalStep(${g.id})" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 font-bold px-3 py-2 rounded-xl text-xs">＋</button></div>
+    </div>`;
+  }).join("");
+}
+
+// WEEKLY REVIEW
+function weeklySummary() {
+  const tk = todayKey(), tot = weeklyCategoryTotals();
+  const sum = Object.values(tot).reduce((a, b) => a + b, 0);
+  const inWeek = k => { const d = dayDiff(k, tk); return d >= 0 && d < 7; };
+  const activeDays = Object.keys(currentUser.catHistory).filter(k => inWeek(k) && Object.values(currentUser.catHistory[k]).some(n => n > 0)).length;
+  const journalDays = new Set(currentUser.journal.map(j => normDateKey(j.date)).filter(k => k && inWeek(k))).size;
+  const steps = currentUser.goals.reduce((n, g) => n + g.steps.filter(s => s.at && inWeek(s.at)).length, 0);
+  const sorted = Object.entries(tot).sort((a, b) => b[1] - a[1]);
+  return { sum, activeDays, journalDays, steps, best: sorted[0], low: sorted[sorted.length - 1] };
+}
+function renderWeeklyReview() {
+  const w = weeklySummary(), box = (v, l) => `<div class="bg-slate-900 rounded-xl p-2 text-center"><div class="text-lg font-extrabold text-amber-300">${v}</div><div class="text-[10px] text-slate-400">${l}</div></div>`;
+  document.getElementById("weeklyReview").innerHTML = `
+    <div class="grid grid-cols-2 gap-2">${box(w.sum, "ภารกิจ/ขั้นตอนที่ทำ")}${box(w.activeDays + "/7", "วันที่ลงมือทำ")}${box(w.journalDays, "วันที่เขียนบันทึก")}${box(w.steps, "ขั้นตอนเป้าหมาย")}</div>
+    <p class="text-slate-300">${w.sum === 0 ? "สัปดาห์นี้ยังไม่มีข้อมูล เริ่มจากภารกิจเล็กๆ ข้อเดียวก็พอ" : `💪 ด้านที่เด่น: ${CATEGORIES[w.best[0]].label} · 🌱 ด้านที่ควรเสริม: ${CATEGORIES[w.low[0]].label}`}</p>`;
+}
+function weeklyReviewToJournal() {
+  const w = weeklySummary(), ta = document.getElementById("journalInput");
+  ta.value = `ทบทวนสัปดาห์: ทำภารกิจ/ขั้นตอน ${w.sum} ข้อ ใน ${w.activeDays}/7 วัน` +
+    (w.sum ? ` ด้านที่เด่นคือ ${CATEGORIES[w.best[0]].label} ด้านที่ควรเสริมคือ ${CATEGORIES[w.low[0]].label}` : "") +
+    `\nสิ่งที่ได้ผลดีที่สุด: \nสิ่งที่จะเปลี่ยนในสัปดาห์หน้า: `;
+  ta.focus();
+  showToast("📝 เติมแบบฟอร์มทบทวนให้แล้ว เขียนต่อในช่องบันทึกด้านบนได้เลย");
+}
+
+// RENDER ALL UI
+function renderAll() {
+  renderHeader();
+  renderBossPanel();
+  renderDailyLoginBanner();
+  renderQuests();
+  renderInventory();
+  renderSchedule();
+  renderHistoryLogUI();
+  renderJournal();
+  renderBalance();
+  renderGoals();
+  renderWeeklyReview();
+  renderSettings();
+}
+
+function renderHeader() {
+  const perks = getActivePerks();
+  document.getElementById("heroNameDisplay").innerText = currentUser.username;
+  document.getElementById("heroClassBadge").innerText = currentUser.heroClass;
+  document.getElementById("heroTitleDisplay").innerText = currentUser.title;
+  document.getElementById("lvlDisplay").innerText = currentUser.level;
+  document.getElementById("goldDisplay").innerText = currentUser.gold;
+  document.getElementById("ticketsDisplay").innerText = currentUser.tickets || 0;
+  document.getElementById("chargesDisplay").innerText = currentUser.charges || 0;
+  document.getElementById("playerHpDisplay").innerText = `${currentUser.hp}/${currentUser.maxHp}`;
+  document.getElementById("streakDisplay").innerText = `${currentUser.streak || 1} วัน`;
+  document.getElementById("battleHeroName").innerText = currentUser.username;
+  document.getElementById("petBadge").innerText = `สัตว์เลี้ยง: ${currentUser.pet}`;
+  const avatar = document.getElementById("heroAvatarIcon");
+  if (avatar) avatar.innerText = CLASS_ICONS[currentUser.heroClass] || "⚔️";
+
+  let req = currentUser.level * 100;
+  let pct = Math.min(100, (currentUser.exp / req) * 100);
+  document.getElementById("expBar").style.width = `${pct}%`;
+  document.getElementById("expText").innerText = `${currentUser.exp}/${req}`;
+
+  // Speed notice
+  const notice = document.getElementById("speedPerkNotice");
+  if (perks.speedMult > 1.0) {
+    notice.innerText = `⚡ สวมใส่อุปกรณ์เร่งเวลา: ความเร็ว x${perks.speedMult.toFixed(2)} เท่า`;
+    notice.classList.remove("hidden");
+  } else {
+    notice.classList.add("hidden");
+  }
+
+  // Render Active Buff Icons
+  const buffsList = document.getElementById("activeBuffsList");
+  let buffHtml = "";
+  if (perks.speedMult > 1) buffHtml += `<span class="bg-amber-950 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded">⚡ Speed x${perks.speedMult.toFixed(2)}</span>`;
+  if (perks.expMult > 1) buffHtml += `<span class="bg-purple-950 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded">⭐ EXP x${perks.expMult.toFixed(2)}</span>`;
+  if (perks.goldMult > 1) buffHtml += `<span class="bg-yellow-950 text-yellow-300 border border-yellow-500/30 px-1.5 py-0.5 rounded">💰 Gold x${perks.goldMult.toFixed(2)}</span>`;
+  if (perks.bonusAtk > 0) buffHtml += `<span class="bg-red-950 text-red-300 border border-red-500/30 px-1.5 py-0.5 rounded">⚔️ ATK +${perks.bonusAtk}</span>`;
+  if (streakBonus() > 0) buffHtml += `<span class="bg-orange-950 text-orange-300 border border-orange-500/30 px-1.5 py-0.5 rounded">🔥 สตรีค +${Math.round(streakBonus() * 100)}% ดาเมจ</span>`;
+  buffsList.innerHTML = buffHtml;
+}
+
+function renderBossPanel() {
+  const curStage = currentUser.bossStage || 1;
+  const stageDef = BOSS_STAGES.find(s => s.stage === curStage) || BOSS_STAGES[0];
+
+  document.getElementById("bossStageTitle").innerText = `⚔️ BOSS RAID - STAGE ${curStage}`;
+  document.getElementById("bossStageBadge").innerText = `STAGE ${curStage}`;
+  document.getElementById("bossNameDisplay").innerText = `${stageDef.name} (${stageDef.title})`;
+  document.getElementById("bossNameSub").innerText = stageDef.name;
+  document.getElementById("bossSprite").innerText = stageDef.icon;
+  const bhe = document.getElementById("battleHeroEmoji"); if (bhe && currentUser.heroClass) bhe.textContent = CLASS_ICONS[currentUser.heroClass] || "🛡️";
+
+  let pct = Math.max(0, (currentUser.bossHp / currentUser.maxBossHp) * 100);
+  document.getElementById("bossHpBar").style.width = `${pct}%`;
+  document.getElementById("bossHpText").innerText = `${currentUser.bossHp} / ${currentUser.maxBossHp} HP`;
+
+  let playerPct = (currentUser.hp / currentUser.maxHp) * 100;
+  document.getElementById("playerHpBar").style.width = `${playerPct}%`;
+
+  const ch = currentUser.charges || 0;
+  const badge = document.getElementById("chargeBadge");
+  if (badge) badge.innerText = `⚡ ${ch}`;
+  const atk = document.getElementById("attackBtn");
+  if (atk) atk.disabled = ch < 1;
+  sync3D();
+}
+
+function renderSchedule() {
+  const container = document.getElementById("scheduleList");
+  if (!currentUser.schedule) currentUser.schedule = cloneSchedule();
+
+  container.innerHTML = currentUser.schedule.map(item => `
+    <div class="glass p-3 rounded-xl flex items-center justify-between text-xs border-purple-500/20">
+      <div>
+        <span class="font-bold text-amber-300 block text-[11px]">${esc(item.time)}</span>
+        <span class="text-slate-200 font-medium">${esc(item.task)}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="deleteScheduleItem(${Number(item.id)})" class="text-slate-500 hover:text-red-400 text-xs px-1" title="ลบออกจากตาราง">✕</button>
+        ${item.status === 'COMPLETED' ? `
+          <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/30 px-2 py-1 rounded-lg">✅ เสร็จสิ้น</span>
+        ` : item.status === 'IN_PROGRESS' ? `
+          <span class="text-[10px] bg-amber-950 text-amber-300 border border-amber-500/30 px-2 py-1 rounded-lg animate-pulse">⏳ กำลังทำ</span>
+        ` : `
+          <button onclick="startScheduleTask(${Number(item.id)})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">▶ เริ่มเล่น</button>
+        `}
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderHistoryLogUI() {
+  const tbody = document.getElementById("historyTableBody");
+  const search = (document.getElementById("historySearchInput")?.value || "").toLowerCase();
+  const filter = document.getElementById("historyFilterSelect")?.value || "ALL";
+
+  if (!currentUser || !currentUser.logs || currentUser.logs.length === 0) {
+    tbody.innerHTML = `<tr><td colSpan="5" class="p-6 text-center text-slate-500">ยังไม่มีประวัติการทำกิจกรรม</td></tr>`;
+    return;
+  }
+
+  const filteredLogs = currentUser.logs.filter(log => {
+    const matchesSearch = log.activityName.toLowerCase().includes(search);
+    const matchesFilter = filter === "ALL" || log.status === filter;
+    return matchesSearch && matchesFilter;
+  });
+
+  if (filteredLogs.length === 0) {
+    tbody.innerHTML = `<tr><td colSpan="5" class="p-6 text-center text-slate-500">ไม่พบประวัติที่ตรงกับเงื่อนไขการค้นหา</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filteredLogs.map(log => `
+    <tr class="hover:bg-purple-900/20 transition">
+      <td class="p-2.5 text-slate-400 text-[11px] whitespace-nowrap">${esc(log.timestamp)}</td>
+      <td class="p-2.5 font-medium text-white">${esc(log.activityName)}</td>
+      <td class="p-2.5 text-slate-400">${esc(log.duration)}</td>
+      <td class="p-2.5">
+        ${log.status === 'SUCCESS' ? '<span class="text-emerald-400 font-bold">🟢 สำเร็จ</span>' : '<span class="text-rose-400 font-bold">🔴 ไม่สำเร็จ</span>'}
+      </td>
+      <td class="p-2.5 text-right">
+        <button data-id="${esc(log.id)}" onclick="deleteLogById(this.dataset.id)" class="text-slate-500 hover:text-red-400 px-1">❌</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function renderQuests() {
+  const container = document.getElementById("questList");
+  const total = currentUser.quests.length, doneCount = currentUser.quests.filter(q => q.done).length;
+  document.getElementById("questCountBadge").innerText = `${doneCount}/${total} สำเร็จ`;
+  updateDailyRing();
+
+  if (total === 0) {
+    container.innerHTML = `<div class="text-center text-xs text-slate-500 py-6">ไม่มีภารกิจรายวัน</div>`;
+    return;
+  }
+
+  container.innerHTML = currentUser.quests.map(q => {
+    const cat = CATEGORIES[q.cat] || CATEGORIES.life;
+    const diffClass = q.diff === 'EASY' ? 'bg-emerald-950 text-emerald-300' : q.diff === 'NORMAL' ? 'bg-amber-950 text-amber-300' : 'bg-red-950 text-red-300';
+    const reward = q.diff === 'EASY' ? '+20 EXP, 10 💰, ⚡1' : q.diff === 'NORMAL' ? '+40 EXP, 25 💰, ⚡2' : '+70 EXP, 50 💰, ⚡3';
+    return `
+    <div class="glass p-4 rounded-2xl flex items-center justify-between gap-3 border-purple-500/20 hover:border-purple-500/50 transition ${q.done ? 'opacity-50' : ''}">
+      <div class="flex items-center gap-3">
+        <div class="text-2xl">${esc(q.icon)}</div>
+        <div>
+          <h4 class="font-bold text-sm text-slate-200 ${q.done ? 'line-through text-slate-400' : ''}">${esc(q.title)}</h4>
+          <div class="flex flex-wrap items-center gap-1 mt-0.5">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${diffClass}">${reward}</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-300">${cat.icon} ${cat.label}</span>
+            ${q.custom ? '<span class="text-[10px] px-2 py-0.5 rounded-md bg-indigo-950 text-indigo-300">ของฉัน</span>' : ''}
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        ${q.custom ? `<button onclick="deleteQuest(${Number(q.id)})" class="text-slate-500 hover:text-red-400 text-xs px-1" title="ลบภารกิจ">✕</button>` : ''}
+        <button onclick="completeQuest(${Number(q.id)})" ${q.done ? 'disabled' : ''} class="px-4 py-2 rounded-xl font-bold text-xs transition ${q.done ? 'bg-slate-800 text-slate-500' : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-md'}">
+          ${q.done ? '✓ สำเร็จแล้ว' : 'ทำภารกิจ'}
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderInventory() {
+  const container = document.getElementById("inventoryList");
+  document.getElementById("invCount").innerText = `${currentUser.inventory.length} รายการ`;
+
+  // Render Equipped
+  const wpn = currentUser.equipped.WEAPON;
+  const acc = currentUser.equipped.ACCESSORY;
+
+  document.getElementById("equippedWeapon").innerText = wpn ? `${wpn.icon} ${wpn.name}` : "ไม่มี";
+  document.getElementById("equippedAccessory").innerText = acc ? `${acc.icon} ${acc.name}` : "ไม่มี";
+
+  document.getElementById("unequipWpnBtn").classList.toggle("hidden", !wpn);
+  document.getElementById("unequipAccBtn").classList.toggle("hidden", !acc);
+
+  if (currentUser.inventory.length === 0) {
+    container.innerHTML = `<div class="text-center text-xs text-slate-500 py-4">ยังไม่มีไอเทม (สุ่มได้จากหมุนกาชาปอง)</div>`;
+    return;
+  }
+
+  container.innerHTML = currentUser.inventory.map(item => {
+    const isEquipped = (wpn && wpn.id === item.id) || (acc && acc.id === item.id);
+    const canEquip = item.type === 'WEAPON' || item.type === 'ACCESSORY';
+
+    return `
+      <div class="glass p-2.5 rounded-xl flex items-center justify-between border-amber-500/20 text-xs">
+        <div class="flex items-center gap-2 truncate">
+          <span class="text-xl">${esc(item.icon)}</span>
+          <div class="truncate">
+            <div class="font-bold text-slate-200 truncate">${esc(item.name)}</div>
+            <div class="text-[9px] text-emerald-300">${esc(item.desc || item.type)}</div>
+          </div>
+        </div>
+        <div>
+          ${canEquip ? `
+            <button data-id="${esc(item.id)}" onclick="equipItem(this.dataset.id)" ${isEquipped ? 'disabled' : ''} class="text-[10px] px-2 py-1 rounded-lg font-bold ${isEquipped ? 'bg-slate-800 text-slate-500' : 'bg-purple-600 hover:bg-purple-500 text-white'}">
+              ${isEquipped ? 'สวมใส่อยู่' : 'สวมใส่'}
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+let canvas, ctx, animFrame;
+function startCanvasLoop() {
+  canvas = document.getElementById("rpgCanvas");
+  if (!canvas) return;
+  ctx = canvas.getContext("2d");
+
+  let tick = 0;
+  function loop() {
+    tick++;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let heroY = 110 + Math.sin(tick * 0.05) * 4;
+    ctx.fillStyle = "#8b5cf6";
+    ctx.beginPath(); ctx.arc(100, heroY, 24, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#fef08a"; ctx.font = "20px sans-serif"; ctx.fillText((currentUser && CLASS_ICONS[currentUser.heroClass]) || "⚔️", 90, heroY + 7);
+
+    let petY = 125 + Math.cos(tick * 0.08) * 6;
+    ctx.fillStyle = "#10b981";
+    ctx.beginPath(); ctx.arc(160, petY, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.font = "12px sans-serif"; ctx.fillText(petIcon(currentUser && currentUser.pet), 154, petY + 4);
+
+    animFrame = requestAnimationFrame(loop);
+  }
+  if (animFrame) cancelAnimationFrame(animFrame);
+  loop();
+}
+</script>
+</body>
+</html>
